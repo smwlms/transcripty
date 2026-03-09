@@ -3,7 +3,7 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from transcripty.config import configure, get_config
-from transcripty.formatters import to_srt, to_text, to_vtt
+from transcripty.formatters import to_srt, to_text, to_vtt, to_word_highlights
 from transcripty.merge import merge
 from transcripty.models import (
     UNKNOWN_SPEAKER,
@@ -13,6 +13,7 @@ from transcripty.models import (
     Segment,
     TranscriptionResult,
     Word,
+    WordHighlight,
 )
 from transcripty.transcribe import transcribe
 from transcripty.vocabulary import Vocabulary
@@ -62,6 +63,7 @@ __all__ = [
     "to_srt",
     "to_text",
     "to_vtt",
+    "to_word_highlights",
     "transcribe",
     "transcribe_with_speakers",
     "Vocabulary",
@@ -72,5 +74,6 @@ __all__ = [
     "LabeledSegment",
     "Segment",
     "Word",
+    "WordHighlight",
     "UNKNOWN_SPEAKER",
 ]

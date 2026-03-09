@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from transcripty.models import LabeledSegment, Segment
+from transcripty.models import LabeledSegment, Segment, WordHighlight
 
 
 def _fmt_srt_ts(seconds: float) -> str:
@@ -94,3 +94,38 @@ def to_text(
         lines.append(" ".join(parts))
 
     return "\n".join(lines)
+
+
+def to_word_highlights(
+    segments: list[Segment] | list[LabeledSegment],
+) -> list[WordHighlight]:
+    """Extract a flat list of word-level timing data for frontend highlighting.
+
+    Flattens all words from all segments into a single chronological list.
+    Each word carries its segment index and optional speaker label, so a
+    frontend player can highlight words in sync with audio playback.
+
+    Requires that transcription was run with ``word_timestamps=True``.
+    Segments without words are skipped.
+
+    Args:
+        segments: List of Segment or LabeledSegment (with word timestamps).
+
+    Returns:
+        Flat list of WordHighlight, ordered chronologically.
+    """
+    highlights: list[WordHighlight] = []
+    for i, seg in enumerate(segments):
+        speaker = seg.speaker if hasattr(seg, "speaker") else None
+        for w in seg.words:
+            highlights.append(
+                WordHighlight(
+                    word=w.text,
+                    start=w.start,
+                    end=w.end,
+                    probability=w.probability,
+                    segment_index=i,
+                    speaker=speaker,
+                )
+            )
+    return highlights

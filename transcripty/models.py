@@ -58,3 +58,19 @@ class LabeledSegment(BaseModel):
     end: float
     speaker: str
     words: list[Word] = []
+
+
+class WordHighlight(BaseModel):
+    """A single word positioned in time, for frontend audio-sync highlighting.
+
+    Flat structure designed for direct consumption by audio players
+    (e.g. Wavesurfer.js). Each word carries its segment index and
+    optional speaker label for rendering context.
+    """
+
+    word: str
+    start: float
+    end: float
+    probability: float = 0.0
+    segment_index: int
+    speaker: str | None = None
