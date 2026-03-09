@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+.env
+*.wav
+*.mp3
+*.m4a
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
