@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PIPELINE = "pyannote/speaker-diarization-3.1"
 
+# Module-level pipeline cache to avoid reloading on repeated calls
+_pipeline_cache: dict[str, object] = {}
+
 
 def _resolve_hf_token(hf_token: str | None) -> str | None:
     """Resolve HuggingFace token: parameter > HF_TOKEN env var."""
@@ -30,6 +33,22 @@ def _resolve_hf_token(hf_token: str | None) -> str | None:
         pass
 
     return os.environ.get("HF_TOKEN")
+
+
+def _get_pipeline(pipeline_name: str, token: str | None, device: str):
+    """Get or create a cached pyannote pipeline instance."""
+    import torch
+    from pyannote.audio import Pipeline as PyannotePipeline
+
+    cache_key = f"{pipeline_name}:{device}"
+    if cache_key not in _pipeline_cache:
+        logger.info("Loading pyannote pipeline '%s' on %s...", pipeline_name, device)
+        p = PyannotePipeline.from_pretrained(pipeline_name, token=token)
+        p.to(torch.device(device))
+        _pipeline_cache[cache_key] = p
+    else:
+        logger.debug("Using cached pyannote pipeline '%s'", pipeline_name)
+    return _pipeline_cache[cache_key]
 
 
 def diarize(
@@ -54,8 +73,8 @@ def diarize(
         DiarizationResult with speaker segments, speaker count, and embeddings.
     """
     try:
-        import torch
-        from pyannote.audio import Pipeline as PyannotePipeline
+        import torch  # noqa: F401
+        from pyannote.audio import Pipeline as PyannotePipeline  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "pyannote.audio and torch are required for diarization. "
@@ -70,12 +89,8 @@ def diarize(
             "No HuggingFace token provided. Set HF_TOKEN in .env or pass hf_token parameter."
         )
 
-    # Load pipeline
     device = detect_device()
-    logger.info("Loading pyannote pipeline '%s' on %s...", pipeline, device)
-
-    diarization_pipeline = PyannotePipeline.from_pretrained(pipeline, token=token)
-    diarization_pipeline.to(torch.device(device))
+    diarization_pipeline = _get_pipeline(pipeline, token, device)
 
     # Run diarization
     with wav_audio(audio_path) as wav_path:
@@ -94,12 +109,9 @@ def diarize(
         elapsed = round(time.time() - start, 2)
 
         # pyannote v4 returns DiarizeOutput dataclass, v3 returns Annotation
-        # Extract the Annotation object
         if hasattr(output, "speaker_diarization"):
-            # v4: DiarizeOutput with .speaker_diarization Annotation
             annotation = output.speaker_diarization
         else:
-            # v3: direct Annotation
             annotation = output
 
         # Convert pyannote Annotation to our models

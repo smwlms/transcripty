@@ -106,7 +106,7 @@ def test_save_and_load(tmp_path: Path):
     loaded = SpeakerDB.load(path)
     assert loaded.names == ["Alice", "Bob"]
     assert len(loaded) == 2
-    assert loaded.profiles["Alice"]["embedding"] == [0.1, 0.2, 0.3]
+    assert loaded.profiles["Alice"].embedding == [0.1, 0.2, 0.3]
 
 
 def test_repr():

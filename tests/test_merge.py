@@ -87,3 +87,39 @@ def test_merge_multiple_diarization_segments_same_speaker():
 
     result = merge(segments, diarization)
     assert result[0].speaker == "A"
+
+
+def test_merge_with_speaker_names():
+    """Speaker names mapping replaces labels with display names."""
+    segments = [
+        Segment(text="Hello", start=0.0, end=2.0),
+        Segment(text="Hi there", start=2.5, end=4.0),
+    ]
+    diarization = [
+        DiarizationSegment(speaker="SPEAKER_00", start=0.0, end=2.5),
+        DiarizationSegment(speaker="SPEAKER_01", start=2.5, end=5.0),
+    ]
+    names = {"SPEAKER_00": "Alexander", "SPEAKER_01": "Samuel"}
+
+    result = merge(segments, diarization, speaker_names=names)
+
+    assert result[0].speaker == "Alexander"
+    assert result[1].speaker == "Samuel"
+
+
+def test_merge_with_partial_speaker_names():
+    """Unmapped speakers keep their original label."""
+    segments = [
+        Segment(text="Hello", start=0.0, end=2.0),
+        Segment(text="Hi", start=2.5, end=4.0),
+    ]
+    diarization = [
+        DiarizationSegment(speaker="SPEAKER_00", start=0.0, end=2.5),
+        DiarizationSegment(speaker="SPEAKER_01", start=2.5, end=5.0),
+    ]
+    names = {"SPEAKER_00": "Alexander"}
+
+    result = merge(segments, diarization, speaker_names=names)
+
+    assert result[0].speaker == "Alexander"
+    assert result[1].speaker == "SPEAKER_01"

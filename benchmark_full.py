@@ -1,6 +1,5 @@
 """Full pipeline benchmark: vocabulary + transcription + diarization + speaker ID."""
 
-import json
 import logging
 import sqlite3
 import time
@@ -41,19 +40,21 @@ def fmt_ts(seconds: float) -> str:
 
 def setup_vocabulary():
     """Create vocabulary with domain-specific terms."""
-    vocab = Vocabulary([
-        "Claes & Willems",
-        "inkopen",
-        "inkoper",
-        "Whise",
-        "Colibry",
-        "radiatoren",
-        "radiator",
-        "loodgieter",
-        "offerte",
-        "Andries",
-        "zaakvoerder",
-    ])
+    vocab = Vocabulary(
+        [
+            "Claes & Willems",
+            "inkopen",
+            "inkoper",
+            "Whise",
+            "Colibry",
+            "radiatoren",
+            "radiator",
+            "loodgieter",
+            "offerte",
+            "Andries",
+            "zaakvoerder",
+        ]
+    )
     vocab.save(VOCAB_FILE)
     return vocab
 
@@ -73,7 +74,7 @@ def main():
     print(f"\nVocabulary: {vocab.as_prompt()}")
 
     # Step 1: Transcribe with vocabulary prompt
-    print(f"\n--- Step 1: Transcription (medium + vocabulary) ---")
+    print("\n--- Step 1: Transcription (medium + vocabulary) ---")
     t0 = time.time()
     result = transcribe(
         audio_path=str(audio_path),
@@ -87,7 +88,7 @@ def main():
     print(f"Done in {t_transcribe:.1f}s — {len(result.segments)} segments")
 
     # Step 2: Diarize
-    print(f"\n--- Step 2: Diarization ---")
+    print("\n--- Step 2: Diarization ---")
     t0 = time.time()
     speakers = diarize(
         audio_path=str(audio_path),
@@ -140,9 +141,18 @@ def main():
     for correct, wrong in check_words:
         found_correct = correct.lower() in full_text.lower()
         found_wrong = wrong and wrong.lower() in full_text.lower()
-        status = "OK" if found_correct and not found_wrong else "MISS" if not found_correct else "MIXED"
-        print(f"  {status:5} | '{correct}' {'found' if found_correct else 'NOT found'}"
-              + (f" (wrong form '{wrong}' {'still present' if found_wrong else 'gone'})" if wrong else ""))
+        if found_correct and not found_wrong:
+            status = "OK"
+        elif not found_correct:
+            status = "MISS"
+        else:
+            status = "MIXED"
+        found_str = "found" if found_correct else "NOT found"
+        wrong_str = ""
+        if wrong:
+            present = "still present" if found_wrong else "gone"
+            wrong_str = f" (wrong form '{wrong}' {present})"
+        print(f"  {status:5} | '{correct}' {found_str}{wrong_str}")
 
     print(f"\n{'=' * 70}")
     print("STATS")

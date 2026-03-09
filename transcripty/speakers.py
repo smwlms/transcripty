@@ -4,25 +4,32 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
-import numpy as np
+from pydantic import BaseModel
 
 from transcripty.models import DiarizationResult
 
 logger = logging.getLogger(__name__)
 
 
+class SpeakerProfile(BaseModel):
+    """A stored voice profile for a known speaker."""
+
+    embedding: list[float]
+    enrolled_at: str
+
+
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Compute cosine similarity between two vectors."""
-    a_arr = np.array(a, dtype=np.float32)
-    b_arr = np.array(b, dtype=np.float32)
-    dot = np.dot(a_arr, b_arr)
-    norm = np.linalg.norm(a_arr) * np.linalg.norm(b_arr)
-    if norm == 0:
+    """Compute cosine similarity between two vectors (pure Python, no numpy)."""
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(x * x for x in b))
+    if norm_a == 0 or norm_b == 0:
         return 0.0
-    return float(dot / norm)
+    return dot / (norm_a * norm_b)
 
 
 class SpeakerDB:
@@ -42,13 +49,7 @@ class SpeakerDB:
     """
 
     def __init__(self) -> None:
-        self.profiles: dict[str, dict] = {}
-        # profiles = {
-        #   "Name": {
-        #     "embedding": [float, ...],
-        #     "enrolled_at": "ISO timestamp"
-        #   }
-        # }
+        self.profiles: dict[str, SpeakerProfile] = {}
 
     def enroll(
         self,
@@ -83,12 +84,7 @@ class SpeakerDB:
 
         # Take the first (and only) speaker embedding
         embedding = list(result.embeddings.values())[0]
-
-        self.profiles[name] = {
-            "embedding": embedding,
-            "enrolled_at": datetime.now(timezone.utc).isoformat(),
-        }
-        logger.info("Enrolled '%s' (embedding dim=%d)", name, len(embedding))
+        self.enroll_from_embedding(name, embedding)
 
     def enroll_from_embedding(
         self,
@@ -101,10 +97,10 @@ class SpeakerDB:
             name: Display name for this speaker.
             embedding: Speaker embedding vector.
         """
-        self.profiles[name] = {
-            "embedding": embedding,
-            "enrolled_at": datetime.now(timezone.utc).isoformat(),
-        }
+        self.profiles[name] = SpeakerProfile(
+            embedding=embedding,
+            enrolled_at=datetime.now(timezone.utc).isoformat(),
+        )
         logger.info("Enrolled '%s' from embedding (dim=%d)", name, len(embedding))
 
     def identify(
@@ -141,7 +137,7 @@ class SpeakerDB:
             best_score = -1.0
 
             for name, profile in self.profiles.items():
-                score = _cosine_similarity(speaker_emb, profile["embedding"])
+                score = _cosine_similarity(speaker_emb, profile.embedding)
                 if score > best_score:
                     best_score = score
                     best_name = name
@@ -167,8 +163,9 @@ class SpeakerDB:
     def save(self, path: str | Path) -> None:
         """Save speaker profiles to a JSON file."""
         path = Path(path)
+        data = {name: p.model_dump() for name, p in self.profiles.items()}
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"speakers": self.profiles}, f, indent=2)
+            json.dump({"speakers": data}, f, indent=2)
         logger.info("Speaker DB saved to %s (%d profiles)", path, len(self.profiles))
 
     @classmethod
@@ -178,7 +175,8 @@ class SpeakerDB:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         db = cls()
-        db.profiles = data.get("speakers", {})
+        for name, profile_data in data.get("speakers", {}).items():
+            db.profiles[name] = SpeakerProfile.model_validate(profile_data)
         logger.info("Speaker DB loaded from %s (%d profiles)", path, len(db.profiles))
         return db
 

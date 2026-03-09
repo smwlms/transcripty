@@ -64,7 +64,7 @@ def run_benchmark(model_size: str) -> dict:
         full_text_lines.append(seg.text)
     full_text = " ".join(full_text_lines)
 
-    print(f"\n--- Stats ---")
+    print("\n--- Stats ---")
     print(f"Time:     {elapsed:.1f}s ({rt_factor:.2f}x realtime)")
     print(f"Language: {result.language} ({result.language_probability:.0%})")
     print(f"Segments: {len(result.segments)}")

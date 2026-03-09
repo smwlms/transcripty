@@ -10,6 +10,7 @@ venv/
 *.wav
 *.mp3
 *.m4a
+speakers.json
 .ruff_cache/
 .pytest_cache/
 htmlcov/

@@ -9,15 +9,19 @@ from transcripty.models import (
     TranscriptionResult,
     Word,
 )
-from transcripty.speakers import SpeakerDB
 from transcripty.transcribe import transcribe
 from transcripty.vocabulary import Vocabulary
 
-# Lazy import: diarize requires torch/pyannote which are optional
+# Lazy imports: these require optional dependencies (torch/pyannote/numpy)
 try:
     from transcripty.diarize import diarize
 except ImportError:
     diarize = None  # type: ignore[assignment]
+
+try:
+    from transcripty.speakers import SpeakerDB
+except ImportError:
+    SpeakerDB = None  # type: ignore[assignment]
 
 __all__ = [
     "transcribe",
