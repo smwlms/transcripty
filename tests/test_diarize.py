@@ -45,7 +45,7 @@ def test_pipeline_cache_key_format():
     _pipeline_cache.clear()
 
     sentinel = object()
-    _pipeline_cache["pyannote/speaker-diarization-3.1:cpu"] = sentinel
+    _pipeline_cache.get_or_load("pyannote/speaker-diarization-3.1:cpu", lambda: sentinel)
 
     assert "pyannote/speaker-diarization-3.1:cpu" in _pipeline_cache
     assert "pyannote/speaker-diarization-3.1:mps" not in _pipeline_cache
@@ -57,11 +57,15 @@ def test_pipeline_cache_different_devices():
     """Different devices create different cache entries."""
     _pipeline_cache.clear()
 
-    _pipeline_cache["pyannote/test:cpu"] = MagicMock()
-    _pipeline_cache["pyannote/test:mps"] = MagicMock()
+    cpu_mock = MagicMock()
+    mps_mock = MagicMock()
+    _pipeline_cache.get_or_load("pyannote/test:cpu", lambda: cpu_mock)
+    _pipeline_cache.get_or_load("pyannote/test:mps", lambda: mps_mock)
 
     assert len(_pipeline_cache) == 2
-    assert _pipeline_cache["pyannote/test:cpu"] is not _pipeline_cache["pyannote/test:mps"]
+    result_cpu = _pipeline_cache.get_or_load("pyannote/test:cpu", lambda: MagicMock())
+    result_mps = _pipeline_cache.get_or_load("pyannote/test:mps", lambda: MagicMock())
+    assert result_cpu is not result_mps
 
     _pipeline_cache.clear()
 

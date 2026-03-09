@@ -107,11 +107,13 @@ def test_model_caching():
     sentinel_a = MagicMock(name="model_a")
     sentinel_b = MagicMock(name="model_b")
 
-    _model_cache["small:int8:cpu"] = sentinel_a
-    _model_cache["medium:int8:cpu"] = sentinel_b
+    _model_cache.get_or_load("small:int8:cpu", lambda: sentinel_a)
+    _model_cache.get_or_load("medium:int8:cpu", lambda: sentinel_b)
 
-    assert _model_cache["small:int8:cpu"] is sentinel_a
-    assert _model_cache["medium:int8:cpu"] is sentinel_b
+    result_a = _model_cache.get_or_load("small:int8:cpu", lambda: MagicMock())
+    result_b = _model_cache.get_or_load("medium:int8:cpu", lambda: MagicMock())
+    assert result_a is sentinel_a
+    assert result_b is sentinel_b
     assert len(_model_cache) == 2
 
     _model_cache.clear()
@@ -122,7 +124,7 @@ def test_model_cache_key_format():
     _model_cache.clear()
 
     sentinel = object()
-    _model_cache["large-v3:float16:cuda"] = sentinel
+    _model_cache.get_or_load("large-v3:float16:cuda", lambda: sentinel)
 
     assert "large-v3:float16:cuda" in _model_cache
     assert "large-v3:int8:cuda" not in _model_cache

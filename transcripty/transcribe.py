@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import threading
 import time
 from pathlib import Path
 from typing import Literal
 
 from transcripty.audio import wav_audio
+from transcripty.cache import ModelCache
 from transcripty.config import get_config
 from transcripty.device import detect_device
 from transcripty.models import Segment, TranscriptionResult, Word
@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 ModelSize = Literal["tiny", "base", "small", "medium", "large-v3", "distil-large-v3"]
 ComputeType = Literal["int8", "float16", "float32", "auto"]
 
-_model_lock = threading.Lock()
-_model_cache: dict[str, object] = {}
+_model_cache = ModelCache("whisper model")
 
 
 def _get_model(model_size: str, compute_type: str, device: str):
@@ -27,34 +26,16 @@ def _get_model(model_size: str, compute_type: str, device: str):
     from faster_whisper import WhisperModel
 
     cache_key = f"{model_size}:{compute_type}:{device}"
-    with _model_lock:
-        if cache_key not in _model_cache:
-            # Evict oldest if cache is full
-            max_cached = get_config().max_cached_models
-            if len(_model_cache) >= max_cached:
-                oldest_key = next(iter(_model_cache))
-                logger.info("Evicting cached model '%s'", oldest_key)
-                del _model_cache[oldest_key]
-
-            logger.info(
-                "Loading Whisper model '%s' (compute=%s, device=%s)...",
-                model_size,
-                compute_type,
-                device,
-            )
-            _model_cache[cache_key] = WhisperModel(
-                model_size, device=device, compute_type=compute_type
-            )
-        else:
-            logger.debug("Using cached Whisper model '%s'", model_size)
-        return _model_cache[cache_key]
+    _model_cache.max_size = get_config().max_cached_models
+    return _model_cache.get_or_load(
+        cache_key,
+        lambda: WhisperModel(model_size, device=device, compute_type=compute_type),
+    )
 
 
 def clear_model_cache() -> None:
     """Clear the Whisper model cache."""
-    with _model_lock:
-        _model_cache.clear()
-    logger.info("Whisper model cache cleared")
+    _model_cache.clear()
 
 
 def transcribe(

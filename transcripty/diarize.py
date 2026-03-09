@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
-import threading
 import time
 from pathlib import Path
 
 from transcripty.audio import wav_audio
+from transcripty.cache import ModelCache
 from transcripty.config import get_config
 from transcripty.device import detect_device
 from transcripty.models import DiarizationResult, DiarizationSegment
@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PIPELINE = "pyannote/speaker-diarization-3.1"
 
-_pipeline_lock = threading.Lock()
-_pipeline_cache: dict[str, object] = {}
+_pipeline_cache = ModelCache("pyannote pipeline")
 
 _cached_hf_token: str | None | bool = False  # False = not yet resolved
 
@@ -56,29 +55,19 @@ def _get_pipeline(pipeline_name: str, token: str | None, device: str):
     from pyannote.audio import Pipeline as PyannotePipeline
 
     cache_key = f"{pipeline_name}:{device}"
-    with _pipeline_lock:
-        if cache_key not in _pipeline_cache:
-            # Evict oldest if cache is full
-            max_cached = get_config().max_cached_models
-            if len(_pipeline_cache) >= max_cached:
-                oldest_key = next(iter(_pipeline_cache))
-                logger.info("Evicting cached pipeline '%s'", oldest_key)
-                del _pipeline_cache[oldest_key]
+    _pipeline_cache.max_size = get_config().max_cached_models
 
-            logger.info("Loading pyannote pipeline '%s' on %s...", pipeline_name, device)
-            p = PyannotePipeline.from_pretrained(pipeline_name, token=token)
-            p.to(torch.device(device))
-            _pipeline_cache[cache_key] = p
-        else:
-            logger.debug("Using cached pyannote pipeline '%s'", pipeline_name)
-        return _pipeline_cache[cache_key]
+    def load():
+        p = PyannotePipeline.from_pretrained(pipeline_name, token=token)
+        p.to(torch.device(device))
+        return p
+
+    return _pipeline_cache.get_or_load(cache_key, load)
 
 
 def clear_pipeline_cache() -> None:
     """Clear the pyannote pipeline cache."""
-    with _pipeline_lock:
-        _pipeline_cache.clear()
-    logger.info("Pyannote pipeline cache cleared")
+    _pipeline_cache.clear()
 
 
 def reset_hf_token_cache() -> None:
