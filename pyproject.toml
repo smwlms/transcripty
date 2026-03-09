@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "transcripty"
-version = "0.1.0"
+version = "0.2.0"
 description = "Standalone audio transcription and speaker diarization package"
 readme = "README.md"
 license = "MIT"
@@ -16,6 +16,9 @@ dependencies = [
     "faster-whisper>=1.0.0",
     "pydub>=0.25.0",
     "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pyyaml>=6.0.0",
+    "click>=8.0.0",
     "audioop-lts>=0.2.1; python_version>='3.13'",
 ]
 
@@ -31,6 +34,14 @@ dev = [
     "pytest-cov>=5.0.0",
     "ruff>=0.4.0",
 ]
+
+[project.scripts]
+transcripty = "transcripty.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/smwlms/transcripty"
+Repository = "https://github.com/smwlms/transcripty"
+Issues = "https://github.com/smwlms/transcripty/issues"
 
 [tool.ruff]
 target-version = "py310"

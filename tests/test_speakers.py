@@ -109,6 +109,54 @@ def test_save_and_load(tmp_path: Path):
     assert loaded.profiles["Alice"].embedding == [0.1, 0.2, 0.3]
 
 
+def test_exclusive_matching():
+    """Two speakers should not be matched to the same profile."""
+    db = SpeakerDB()
+    db.enroll_from_embedding("Alice", [1.0, 0.0])
+    db.enroll_from_embedding("Bob", [0.0, 1.0])
+
+    # Both speakers are equally similar to Alice ([0.7, 0.3])
+    # But exclusive matching should assign each to a different profile
+    result = DiarizationResult(
+        segments=[
+            DiarizationSegment(speaker="SPEAKER_00", start=0.0, end=5.0),
+            DiarizationSegment(speaker="SPEAKER_01", start=5.0, end=10.0),
+        ],
+        num_speakers=2,
+        embeddings={
+            "SPEAKER_00": [0.9, 0.1],  # Closer to Alice
+            "SPEAKER_01": [0.1, 0.9],  # Closer to Bob
+        },
+    )
+
+    names = db.identify(result, threshold=0.3)
+    assert len(names) == 2
+    assert names["SPEAKER_00"] == "Alice"
+    assert names["SPEAKER_01"] == "Bob"
+
+
+def test_exclusive_matching_prevents_duplicate():
+    """Same profile should not be assigned to multiple speakers."""
+    db = SpeakerDB()
+    db.enroll_from_embedding("Alice", [1.0, 0.0])
+
+    result = DiarizationResult(
+        segments=[
+            DiarizationSegment(speaker="SPEAKER_00", start=0.0, end=5.0),
+            DiarizationSegment(speaker="SPEAKER_01", start=5.0, end=10.0),
+        ],
+        num_speakers=2,
+        embeddings={
+            "SPEAKER_00": [0.9, 0.1],
+            "SPEAKER_01": [0.8, 0.2],  # Also close to Alice but should NOT match
+        },
+    )
+
+    names = db.identify(result, threshold=0.5)
+    assert len(names) == 1  # Only one match, not two
+    assert "Alice" in names.values()
+
+
 def test_repr():
     db = SpeakerDB()
     db.enroll_from_embedding("Alice", [1.0])

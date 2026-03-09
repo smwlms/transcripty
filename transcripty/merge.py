@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import logging
+from bisect import bisect_right
 
-from transcripty.models import DiarizationSegment, LabeledSegment, Segment
+from transcripty.models import (
+    UNKNOWN_SPEAKER,
+    DiarizationSegment,
+    LabeledSegment,
+    Segment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +19,22 @@ def _find_speaker(
     start: float,
     end: float,
     diarization: list[DiarizationSegment],
+    starts: list[float],
 ) -> str:
-    """Find the dominant speaker for a time range based on overlap duration."""
+    """Find the dominant speaker for a time range using binary search."""
     overlaps: dict[str, float] = {}
 
-    for d in diarization:
+    # Find the insertion point — start searching from segments that could overlap
+    idx = bisect_right(starts, start)
+    # Step back to catch segments that started before but may still overlap
+    search_start = max(0, idx - 1)
+
+    for i in range(search_start, len(diarization)):
+        d = diarization[i]
+        # Early exit: if this segment starts after our end, no more overlaps possible
+        if d.start >= end:
+            break
+
         overlap_start = max(start, d.start)
         overlap_end = min(end, d.end)
         overlap = overlap_end - overlap_start
@@ -26,7 +43,7 @@ def _find_speaker(
             overlaps[d.speaker] = overlaps.get(d.speaker, 0.0) + overlap
 
     if not overlaps:
-        return "UNKNOWN"
+        return UNKNOWN_SPEAKER
 
     return max(overlaps, key=lambda k: overlaps[k])
 
@@ -58,9 +75,12 @@ def merge(
 
     names = speaker_names or {}
 
+    # Pre-compute sorted starts for binary search
+    starts = [d.start for d in diarization]
+
     labeled: list[LabeledSegment] = []
     for seg in segments:
-        speaker_label = _find_speaker(seg.start, seg.end, diarization)
+        speaker_label = _find_speaker(seg.start, seg.end, diarization, starts)
         speaker = names.get(speaker_label, speaker_label)
         labeled.append(
             LabeledSegment(

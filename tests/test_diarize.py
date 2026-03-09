@@ -2,7 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from transcripty.diarize import _pipeline_cache, _resolve_hf_token
+from transcripty.config import reset_config
+from transcripty.diarize import _pipeline_cache, _resolve_hf_token, reset_hf_token_cache
 
 
 def test_resolve_hf_token_explicit():
@@ -10,12 +11,18 @@ def test_resolve_hf_token_explicit():
 
 
 def test_resolve_hf_token_env(monkeypatch):
+    reset_hf_token_cache()
+    reset_config()
     monkeypatch.setenv("HF_TOKEN", "env-token")
     assert _resolve_hf_token(None) == "env-token"
+    reset_hf_token_cache()
+    reset_config()
 
 
 def test_resolve_hf_token_none_without_dotenv(monkeypatch):
     """Without dotenv and without env var, returns None."""
+    reset_hf_token_cache()
+    reset_config()
     monkeypatch.delenv("HF_TOKEN", raising=False)
     # Patch the dotenv import to fail
     builtin_import = getattr(__builtins__, "__import__", __import__)
@@ -29,6 +36,8 @@ def test_resolve_hf_token_none_without_dotenv(monkeypatch):
     with patch("builtins.__import__", side_effect=mock_import):
         result = _resolve_hf_token(None)
     assert result is None
+    reset_hf_token_cache()
+    reset_config()
 
 
 def test_pipeline_cache_key_format():

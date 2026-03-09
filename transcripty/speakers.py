@@ -14,22 +14,37 @@ from transcripty.models import DiarizationResult
 
 logger = logging.getLogger(__name__)
 
+# Use numpy if available, pure Python fallback
+try:
+    import numpy as np
+
+    def _cosine_similarity(a: list[float], b: list[float]) -> float:
+        """Compute cosine similarity using numpy."""
+        va = np.array(a)
+        vb = np.array(b)
+        norm_a = np.linalg.norm(va)
+        norm_b = np.linalg.norm(vb)
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return float(np.dot(va, vb) / (norm_a * norm_b))
+
+except ImportError:
+
+    def _cosine_similarity(a: list[float], b: list[float]) -> float:
+        """Compute cosine similarity (pure Python fallback)."""
+        dot = sum(x * y for x, y in zip(a, b))
+        norm_a = math.sqrt(sum(x * x for x in a))
+        norm_b = math.sqrt(sum(x * x for x in b))
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot / (norm_a * norm_b)
+
 
 class SpeakerProfile(BaseModel):
     """A stored voice profile for a known speaker."""
 
     embedding: list[float]
     enrolled_at: str
-
-
-def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Compute cosine similarity between two vectors (pure Python, no numpy)."""
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return dot / (norm_a * norm_b)
 
 
 class SpeakerDB:
@@ -108,10 +123,11 @@ class SpeakerDB:
         result: DiarizationResult,
         threshold: float = 0.5,
     ) -> dict[str, str]:
-        """Identify speakers in a diarization result by matching embeddings.
+        """Identify speakers using exclusive greedy matching.
 
-        Compares each detected speaker's embedding against enrolled profiles
-        using cosine similarity.
+        Each speaker label is matched to at most one profile, and each
+        profile is matched to at most one speaker label. Highest scoring
+        pairs are matched first.
 
         Args:
             result: DiarizationResult with embeddings from diarize().
@@ -119,8 +135,6 @@ class SpeakerDB:
 
         Returns:
             Mapping of speaker labels to identified names.
-            E.g. {"SPEAKER_00": "Alexander Willems", "SPEAKER_01": "Samuel"}
-            Unmatched speakers are not included.
         """
         if not result.embeddings:
             logger.warning("No embeddings in diarization result. Cannot identify speakers.")
@@ -130,31 +144,38 @@ class SpeakerDB:
             logger.warning("No enrolled speakers. Cannot identify.")
             return {}
 
-        matches: dict[str, str] = {}
-
+        # Compute all pairwise scores
+        scores: list[tuple[float, str, str]] = []
         for speaker_label, speaker_emb in result.embeddings.items():
-            best_name = None
-            best_score = -1.0
-
             for name, profile in self.profiles.items():
                 score = _cosine_similarity(speaker_emb, profile.embedding)
-                if score > best_score:
-                    best_score = score
-                    best_name = name
+                scores.append((score, speaker_label, name))
 
-            if best_name and best_score >= threshold:
-                matches[speaker_label] = best_name
+        # Greedy exclusive matching: highest score first
+        scores.sort(reverse=True)
+        matched_speakers: set[str] = set()
+        matched_profiles: set[str] = set()
+        matches: dict[str, str] = {}
+
+        for score, speaker_label, name in scores:
+            if speaker_label in matched_speakers or name in matched_profiles:
+                continue
+            if score >= threshold:
+                matches[speaker_label] = name
+                matched_speakers.add(speaker_label)
+                matched_profiles.add(name)
                 logger.info(
                     "Identified %s as '%s' (similarity=%.3f)",
                     speaker_label,
-                    best_name,
-                    best_score,
+                    name,
+                    score,
                 )
             else:
                 logger.info(
-                    "No match for %s (best=%.3f, threshold=%.2f)",
+                    "No match for %s → '%s' (score=%.3f < threshold=%.2f)",
                     speaker_label,
-                    best_score,
+                    name,
+                    score,
                     threshold,
                 )
 

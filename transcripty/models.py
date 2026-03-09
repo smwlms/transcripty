@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+UNKNOWN_SPEAKER = "UNKNOWN"
+
 
 class Word(BaseModel):
     """A single word with timing information."""

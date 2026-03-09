@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from pathlib import Path
 from typing import Literal
 
 from transcripty.audio import wav_audio
+from transcripty.config import get_config
 from transcripty.device import detect_device
 from transcripty.models import Segment, TranscriptionResult, Word
 
@@ -16,50 +18,64 @@ logger = logging.getLogger(__name__)
 ModelSize = Literal["tiny", "base", "small", "medium", "large-v3", "distil-large-v3"]
 ComputeType = Literal["int8", "float16", "float32", "auto"]
 
-# Module-level model cache to avoid reloading on repeated calls
+_model_lock = threading.Lock()
 _model_cache: dict[str, object] = {}
 
 
 def _get_model(model_size: str, compute_type: str, device: str):
-    """Get or create a cached WhisperModel instance."""
+    """Get or create a cached WhisperModel instance (thread-safe)."""
     from faster_whisper import WhisperModel
 
     cache_key = f"{model_size}:{compute_type}:{device}"
-    if cache_key not in _model_cache:
-        logger.info(
-            "Loading Whisper model '%s' (compute=%s, device=%s)...",
-            model_size,
-            compute_type,
-            device,
-        )
-        _model_cache[cache_key] = WhisperModel(
-            model_size, device=device, compute_type=compute_type
-        )
-    else:
-        logger.debug("Using cached Whisper model '%s'", model_size)
-    return _model_cache[cache_key]
+    with _model_lock:
+        if cache_key not in _model_cache:
+            # Evict oldest if cache is full
+            max_cached = get_config().max_cached_models
+            if len(_model_cache) >= max_cached:
+                oldest_key = next(iter(_model_cache))
+                logger.info("Evicting cached model '%s'", oldest_key)
+                del _model_cache[oldest_key]
+
+            logger.info(
+                "Loading Whisper model '%s' (compute=%s, device=%s)...",
+                model_size,
+                compute_type,
+                device,
+            )
+            _model_cache[cache_key] = WhisperModel(
+                model_size, device=device, compute_type=compute_type
+            )
+        else:
+            logger.debug("Using cached Whisper model '%s'", model_size)
+        return _model_cache[cache_key]
+
+
+def clear_model_cache() -> None:
+    """Clear the Whisper model cache."""
+    with _model_lock:
+        _model_cache.clear()
+    logger.info("Whisper model cache cleared")
 
 
 def transcribe(
     audio_path: str | Path,
-    model_size: ModelSize = "small",
+    model_size: ModelSize | None = None,
     language: str | None = None,
-    word_timestamps: bool = True,
-    compute_type: ComputeType = "int8",
-    beam_size: int = 5,
+    word_timestamps: bool | None = None,
+    compute_type: ComputeType | None = None,
+    beam_size: int | None = None,
     prompt: str | None = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file using faster-whisper.
 
     Args:
         audio_path: Path to the audio file (any format supported by pydub/ffmpeg).
-        model_size: Whisper model size (tiny/base/small/medium/large-v3/distil-large-v3).
+        model_size: Whisper model size. Defaults to config value.
         language: Language code (e.g. "nl", "en"). None for auto-detection.
-        word_timestamps: Whether to include word-level timestamps.
-        compute_type: Quantization type (int8/float16/float32/auto).
-        beam_size: Beam size for decoding.
+        word_timestamps: Whether to include word-level timestamps. Defaults to config.
+        compute_type: Quantization type. Defaults to config value.
+        beam_size: Beam size for decoding. Defaults to config value.
         prompt: Initial prompt to bias recognition toward specific words/phrases.
-            Use Vocabulary.as_prompt() or a comma-separated string of terms.
 
     Returns:
         TranscriptionResult with segments, detected language, and duration.
@@ -73,6 +89,16 @@ def transcribe(
         ) from e
 
     audio_path = Path(audio_path)
+    if not audio_path.is_file():
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
+    # Resolve defaults from config
+    cfg = get_config()
+    model_size = model_size or cfg.model_size  # type: ignore[assignment]
+    compute_type = compute_type or cfg.compute_type  # type: ignore[assignment]
+    beam_size = beam_size if beam_size is not None else cfg.beam_size
+    word_timestamps = word_timestamps if word_timestamps is not None else cfg.word_timestamps
+    language = language if language is not None else cfg.language
 
     # Determine device for whisper
     device = detect_device()

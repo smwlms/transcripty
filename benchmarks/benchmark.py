@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import sqlite3
 import sys
 import time
@@ -11,10 +12,10 @@ logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 
 from transcripty import transcribe  # noqa: E402
 
-# Paths
-PLAUDE_ROOT = Path("/Users/samuelwillems/Documents/Projecten/Plaude")
+# Paths — configure via environment or command line
+PLAUDE_ROOT = Path(os.environ.get("PLAUDE_ROOT", Path.home() / "Documents/Projecten/Plaude"))
 DB_PATH = PLAUDE_ROOT / "plaude.db"
-RECORDING_ID = 47
+RECORDING_ID = int(os.environ.get("RECORDING_ID", "47"))
 
 
 def get_reference(recording_id: int) -> dict:
