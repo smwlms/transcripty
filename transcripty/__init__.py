@@ -11,6 +11,12 @@ from transcripty.models import (
 )
 from transcripty.transcribe import transcribe
 
+# Lazy import: diarize requires torch/pyannote which are optional
+try:
+    from transcripty.diarize import diarize
+except ImportError:
+    diarize = None  # type: ignore[assignment]
+
 __all__ = [
     "transcribe",
     "diarize",
@@ -22,12 +28,3 @@ __all__ = [
     "Segment",
     "Word",
 ]
-
-
-def __getattr__(name: str):
-    """Lazy import for diarize to avoid requiring torch at import time."""
-    if name == "diarize":
-        from transcripty.diarize import diarize
-
-        return diarize
-    raise AttributeError(f"module 'transcripty' has no attribute {name!r}")

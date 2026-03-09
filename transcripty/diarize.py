@@ -74,8 +74,7 @@ def diarize(
     device = detect_device()
     logger.info("Loading pyannote pipeline '%s' on %s...", pipeline, device)
 
-    auth_kwargs = {"use_auth_token": token} if token else {}
-    diarization_pipeline = PyannotePipeline.from_pretrained(pipeline, **auth_kwargs)
+    diarization_pipeline = PyannotePipeline.from_pretrained(pipeline, token=token)
     diarization_pipeline.to(torch.device(device))
 
     # Run diarization
@@ -90,19 +89,24 @@ def diarize(
             params["min_speakers"] = min_speakers
             params["max_speakers"] = max_speakers
 
-        annotation = diarization_pipeline(str(wav_path), **params)
+        output = diarization_pipeline(str(wav_path), **params)
 
         elapsed = round(time.time() - start, 2)
-        speakers = annotation.labels()
-        logger.info(
-            "Diarization complete in %ss. %d speakers detected.",
-            elapsed,
-            len(speakers),
-        )
+
+        # pyannote v4 returns DiarizeOutput dataclass, v3 returns Annotation
+        # Extract the Annotation object
+        if hasattr(output, "speaker_diarization"):
+            # v4: DiarizeOutput with .speaker_diarization Annotation
+            annotation = output.speaker_diarization
+        else:
+            # v3: direct Annotation
+            annotation = output
 
         # Convert pyannote Annotation to our models
         segments: list[DiarizationSegment] = []
+        speaker_set: set[str] = set()
         for segment, _, speaker in annotation.itertracks(yield_label=True):
+            speaker_set.add(speaker)
             segments.append(
                 DiarizationSegment(
                     speaker=speaker,
@@ -111,7 +115,13 @@ def diarize(
                 )
             )
 
+        logger.info(
+            "Diarization complete in %ss. %d speakers detected.",
+            elapsed,
+            len(speaker_set),
+        )
+
         return DiarizationResult(
             segments=segments,
-            num_speakers=len(speakers),
+            num_speakers=len(speaker_set),
         )
