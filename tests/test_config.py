@@ -12,7 +12,7 @@ from transcripty.config import (
 
 def test_default_config():
     cfg = get_config()
-    assert cfg.model_size == "large-v3"  # hardware suggested on this machine
+    assert cfg.model_size in ("tiny", "base", "small", "medium", "large-v3", "distil-large-v3")
     assert cfg.max_cached_models == 2
     assert cfg.num_workers >= 1
 
@@ -82,6 +82,17 @@ def test_yaml_config(tmp_path, monkeypatch):
         cfg_module._DEFAULT_CONFIG_FILE = original
         TranscriptyConfig._yaml_file = str(original)
         reset_config()
+
+
+def test_configure_language_none_resets():
+    """configure(language=None) should reset language to auto-detect."""
+    configure(language="nl")
+    cfg = get_config()
+    assert cfg.language == "nl"
+
+    configure(language=None)
+    cfg = get_config()
+    assert cfg.language is None
 
 
 def test_max_cached_models_validation():

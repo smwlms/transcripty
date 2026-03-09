@@ -120,6 +120,9 @@ def get_config() -> TranscriptyConfig:
 def configure(**overrides: Any) -> TranscriptyConfig:
     """Update configuration with runtime overrides.
 
+    Passing None explicitly (e.g. language=None) resets that field.
+    To leave a field unchanged, omit it entirely.
+
     Args:
         **overrides: Config fields to override (e.g. model_size="medium").
 
@@ -130,7 +133,7 @@ def configure(**overrides: Any) -> TranscriptyConfig:
     with _config_lock:
         current = _config or TranscriptyConfig()
         merged = current.model_dump()
-        merged.update({k: v for k, v in overrides.items() if v is not None})
+        merged.update(overrides)
         _config = TranscriptyConfig(**merged)
         logger.info("Configuration updated: %s", list(overrides.keys()))
     return _config
