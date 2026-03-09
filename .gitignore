@@ -11,6 +11,7 @@ venv/
 *.mp3
 *.m4a
 speakers.json
+benchmark*.json
 .ruff_cache/
 .pytest_cache/
 htmlcov/
