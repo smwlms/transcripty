@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from transcripty.merge import merge
 from transcripty.models import LabeledSegment
 from transcripty.transcribe import transcribe
+
+if TYPE_CHECKING:
+    from transcripty.speakers import SpeakerDB
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +20,7 @@ def transcribe_with_speakers(
     audio_path: str | Path,
     hf_token: str | None = None,
     num_speakers: int | None = None,
-    speaker_db: object | None = None,
+    speaker_db: SpeakerDB | None = None,
     **transcribe_kwargs,
 ) -> list[LabeledSegment]:
     """Transcribe audio and assign speaker labels in one call.
