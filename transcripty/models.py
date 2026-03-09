@@ -45,6 +45,7 @@ class DiarizationResult(BaseModel):
 
     segments: list[DiarizationSegment]
     num_speakers: int
+    embeddings: dict[str, list[float]] = {}  # speaker_label -> embedding vector
 
 
 class LabeledSegment(BaseModel):

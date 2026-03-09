@@ -20,6 +20,7 @@ def transcribe(
     word_timestamps: bool = True,
     compute_type: str = "int8",
     beam_size: int = 5,
+    prompt: str | None = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file using faster-whisper.
 
@@ -30,6 +31,8 @@ def transcribe(
         word_timestamps: Whether to include word-level timestamps.
         compute_type: Quantization type (int8/float16/float32).
         beam_size: Beam size for decoding.
+        prompt: Initial prompt to bias recognition toward specific words/phrases.
+            Use Vocabulary.as_prompt() or a comma-separated string of terms.
 
     Returns:
         TranscriptionResult with segments, detected language, and duration.
@@ -61,12 +64,16 @@ def transcribe(
         logger.info("Transcribing %s...", wav_path.name)
         start = time.time()
 
-        segments_gen, info = model.transcribe(
-            str(wav_path),
-            beam_size=beam_size,
-            language=language,
-            word_timestamps=word_timestamps,
-        )
+        transcribe_kwargs: dict = {
+            "beam_size": beam_size,
+            "language": language,
+            "word_timestamps": word_timestamps,
+        }
+        if prompt:
+            transcribe_kwargs["initial_prompt"] = prompt
+            logger.info("Using custom prompt: %s", prompt[:80])
+
+        segments_gen, info = model.transcribe(str(wav_path), **transcribe_kwargs)
 
         segments: list[Segment] = []
         for seg in segments_gen:

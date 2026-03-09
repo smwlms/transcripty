@@ -9,7 +9,9 @@ from transcripty.models import (
     TranscriptionResult,
     Word,
 )
+from transcripty.speakers import SpeakerDB
 from transcripty.transcribe import transcribe
+from transcripty.vocabulary import Vocabulary
 
 # Lazy import: diarize requires torch/pyannote which are optional
 try:
@@ -21,6 +23,8 @@ __all__ = [
     "transcribe",
     "diarize",
     "merge",
+    "Vocabulary",
+    "SpeakerDB",
     "TranscriptionResult",
     "DiarizationResult",
     "DiarizationSegment",

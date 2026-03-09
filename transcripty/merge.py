@@ -34,6 +34,7 @@ def _find_speaker(
 def merge(
     segments: list[Segment],
     diarization: list[DiarizationSegment],
+    speaker_names: dict[str, str] | None = None,
 ) -> list[LabeledSegment]:
     """Merge transcription segments with diarization to assign speakers.
 
@@ -43,6 +44,8 @@ def merge(
     Args:
         segments: Transcription segments from transcribe().
         diarization: Speaker segments from diarize().
+        speaker_names: Optional mapping of speaker labels to display names.
+            E.g. {"SPEAKER_00": "Alexander Willems"}. From SpeakerDB.identify().
 
     Returns:
         List of LabeledSegment with speaker assignments.
@@ -53,9 +56,12 @@ def merge(
         len(diarization),
     )
 
+    names = speaker_names or {}
+
     labeled: list[LabeledSegment] = []
     for seg in segments:
-        speaker = _find_speaker(seg.start, seg.end, diarization)
+        speaker_label = _find_speaker(seg.start, seg.end, diarization)
+        speaker = names.get(speaker_label, speaker_label)
         labeled.append(
             LabeledSegment(
                 text=seg.text,

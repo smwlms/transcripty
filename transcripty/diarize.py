@@ -51,7 +51,7 @@ def diarize(
         pipeline: Pyannote pipeline model name.
 
     Returns:
-        DiarizationResult with speaker segments and detected speaker count.
+        DiarizationResult with speaker segments, speaker count, and embeddings.
     """
     try:
         import torch
@@ -115,6 +115,19 @@ def diarize(
                 )
             )
 
+        # Extract speaker embeddings if available (pyannote v4)
+        embeddings: dict[str, list[float]] = {}
+        if hasattr(output, "speaker_embeddings") and output.speaker_embeddings is not None:
+            speaker_labels = sorted(speaker_set)
+            for i, label in enumerate(speaker_labels):
+                if i < len(output.speaker_embeddings):
+                    embeddings[label] = output.speaker_embeddings[i].tolist()
+            logger.info(
+                "Extracted embeddings for %d speakers (dim=%d)",
+                len(embeddings),
+                len(next(iter(embeddings.values()), [])),
+            )
+
         logger.info(
             "Diarization complete in %ss. %d speakers detected.",
             elapsed,
@@ -124,4 +137,5 @@ def diarize(
         return DiarizationResult(
             segments=segments,
             num_speakers=len(speaker_set),
+            embeddings=embeddings,
         )
