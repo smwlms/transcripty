@@ -104,6 +104,12 @@ def benchmark(audio_path: str, models: str, language: str | None, output: str | 
 @click.option("--model", default=None, help="Override model size")
 @click.option("--language", default=None, help="Language code")
 @click.option(
+    "--compute-type",
+    default=None,
+    type=click.Choice(["int8", "float16", "float32", "auto"]),
+    help="Compute type (default: from config)",
+)
+@click.option(
     "--format",
     "fmt",
     type=click.Choice(["text", "srt", "vtt"]),
@@ -116,6 +122,7 @@ def run(
     audio_path: str,
     model: str | None,
     language: str | None,
+    compute_type: str | None,
     fmt: str,
     diarize: bool,
     output: str | None,
@@ -128,6 +135,8 @@ def run(
         kwargs["model_size"] = model
     if language:
         kwargs["language"] = language
+    if compute_type:
+        kwargs["compute_type"] = compute_type
 
     if diarize:
         from transcripty.pipeline import transcribe_with_speakers
