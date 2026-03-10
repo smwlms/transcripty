@@ -20,7 +20,7 @@ Python package dat Whisper transcriptie en Pyannote speaker diarization aanbiedt
 ```bash
 pip install -e ".[dev]"           # Install dev dependencies
 pip install -e ".[diarization]"   # Install with diarization support
-pytest                             # Run tests (97 tests)
+pytest                             # Run tests (105 tests)
 ruff check .                       # Lint
 ruff format .                      # Format
 transcripty hardware               # Show detected hardware
