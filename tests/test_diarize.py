@@ -203,3 +203,45 @@ def test_diarize_with_num_speakers(mock_token, mock_device, mock_wav, mock_get_p
         call_kwargs = mock_pipeline.call_args[1]
         assert call_kwargs["num_speakers"] == 2
         assert "min_speakers" not in call_kwargs
+
+
+@patch("transcripty.diarize._get_pipeline")
+@patch("transcripty.diarize.wav_audio")
+@patch("transcripty.diarize.detect_device", return_value="cpu")
+@patch("transcripty.diarize._resolve_hf_token", return_value="token")
+def test_diarize_on_progress(mock_token, mock_device, mock_wav, mock_get_pipeline, tmp_path):
+    """on_progress callback receives start and completion calls."""
+    mock_torch = MagicMock()
+
+    with patch.dict(
+        "sys.modules",
+        {
+            "torch": mock_torch,
+            "pyannote": MagicMock(),
+            "pyannote.audio": MagicMock(),
+        },
+    ):
+        from transcripty.diarize import diarize
+
+        audio = tmp_path / "test.wav"
+        audio.touch()
+        mock_wav.return_value.__enter__ = MagicMock(return_value=audio)
+        mock_wav.return_value.__exit__ = MagicMock(return_value=False)
+
+        mock_annotation = MagicMock(spec=[])
+        mock_annotation.itertracks = MagicMock(return_value=[])
+
+        mock_pipeline = MagicMock()
+        mock_pipeline.return_value = mock_annotation
+        mock_get_pipeline.return_value = mock_pipeline
+
+        progress_calls = []
+
+        def on_progress(progress, message):
+            progress_calls.append((progress, message))
+
+        diarize(audio, on_progress=on_progress)
+
+        assert progress_calls[0] == (0.0, "Diarizing...")
+        assert progress_calls[-1] == (1.0, "Diarization complete")
+        assert len(progress_calls) == 2

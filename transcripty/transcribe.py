@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
@@ -61,6 +62,7 @@ def transcribe(
     hallucination_silence_threshold: float | None = _UNSET,
     repetition_penalty: float | None = None,
     no_repeat_ngram_size: int | None = None,
+    on_progress: Callable[[float, str], None] | None = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file using faster-whisper.
 
@@ -79,6 +81,8 @@ def transcribe(
             seconds of silence (requires word_timestamps=True).
         repetition_penalty: Penalize repeated tokens (>1.0 reduces repetitions).
         no_repeat_ngram_size: Prevent repetition of n-grams of this size.
+        on_progress: Optional callback ``(progress: float, message: str) -> None``.
+            Progress is 0.0–1.0 based on segment end time vs audio duration.
 
     Returns:
         TranscriptionResult with segments, detected language, and duration.
@@ -147,6 +151,9 @@ def transcribe(
 
         segments_gen, info = model.transcribe(str(wav_path), **transcribe_kwargs)
 
+        if on_progress:
+            on_progress(0.0, "Transcribing...")
+
         segments: list[Segment] = []
         for seg in segments_gen:
             words: list[Word] = []
@@ -169,6 +176,13 @@ def transcribe(
                     words=words,
                 )
             )
+
+            if on_progress and info.duration > 0:
+                progress = min(seg.end / info.duration, 1.0)
+                on_progress(progress, "Transcribing...")
+
+        if on_progress:
+            on_progress(1.0, "Transcription complete")
 
         elapsed = round(time.time() - start, 2)
         logger.info(

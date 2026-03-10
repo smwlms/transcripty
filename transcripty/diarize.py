@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from transcripty.audio import wav_audio
@@ -83,6 +84,7 @@ def diarize(
     min_speakers: int | None = None,
     max_speakers: int | None = None,
     pipeline: str = DEFAULT_PIPELINE,
+    on_progress: Callable[[float, str], None] | None = None,
 ) -> DiarizationResult:
     """Run speaker diarization on an audio file using pyannote.
 
@@ -93,6 +95,9 @@ def diarize(
         min_speakers: Minimum expected speakers. Defaults to config value.
         max_speakers: Maximum expected speakers. Defaults to config value.
         pipeline: Pyannote pipeline model name.
+        on_progress: Optional callback ``(progress: float, message: str) -> None``.
+            Progress is 0.0 at start and 1.0 when complete. Pyannote does not
+            support granular progress, so only start/done are reported.
 
     Returns:
         DiarizationResult with speaker segments, speaker count, and embeddings.
@@ -134,6 +139,9 @@ def diarize(
     with wav_audio(audio_path) as wav_path:
         logger.info("Diarizing %s...", wav_path.name)
         start = time.time()
+
+        if on_progress:
+            on_progress(0.0, "Diarizing...")
 
         params: dict = {}
         if num_speakers is not None:
@@ -177,6 +185,9 @@ def diarize(
                 len(embeddings),
                 len(next(iter(embeddings.values()), [])),
             )
+
+        if on_progress:
+            on_progress(1.0, "Diarization complete")
 
         logger.info(
             "Diarization complete in %ss. %d speakers detected.",

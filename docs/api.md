@@ -65,6 +65,8 @@ result = transcribe(
     hallucination_silence_threshold=2.0, # float | None — skip hallucinated silence segments
     repetition_penalty=1.1,         # float — penalize repeated tokens (>1.0)
     no_repeat_ngram_size=3,         # int — prevent exact n-gram repetitions
+    # Progress callback
+    on_progress=lambda p, msg: print(f"{p:.0%} {msg}"),  # Callable[[float, str], None] | None
 )
 ```
 
@@ -101,6 +103,7 @@ speakers = diarize(
     min_speakers=1,                # int — minimum expected speakers
     max_speakers=10,               # int — maximum expected speakers
     pipeline="pyannote/speaker-diarization-3.1",  # str — pipeline model name
+    on_progress=lambda p, msg: print(f"{p:.0%} {msg}"),  # Callable[[float, str], None] | None
 )
 ```
 
@@ -153,6 +156,7 @@ segments = transcribe_with_speakers(
     hf_token="hf_...",              # str | None
     num_speakers=None,              # int | None
     speaker_db=None,                # SpeakerDB | None — for speaker identification
+    on_progress=lambda p, msg: print(f"{p:.0%} {msg}"),  # Callable[[float, str], None] | None
     # All transcribe() kwargs are forwarded:
     model_size="medium",
     language="nl",
@@ -163,6 +167,12 @@ segments = transcribe_with_speakers(
 **Returns:** `list[`[`LabeledSegment`](#labeledsegment)`]`
 
 When `speaker_db` is provided, speakers are identified by name instead of generic labels.
+
+**Progress weights:** The pipeline reports weighted progress across stages:
+
+- `0.0–0.7` — transcription
+- `0.7–0.9` — diarization
+- `0.9–1.0` — merge/identify
 
 > Requires `pip install "transcripty[diarization]"`
 
@@ -753,7 +763,11 @@ configure(
 
 @app.post("/transcribe", response_model=TranscriptionResult)
 async def api_transcribe(audio_path: str, language: str | None = None):
-    return transcribe(audio_path, language=language)
+    def on_progress(progress: float, message: str):
+        # e.g. push to WebSocket, update DB, log
+        logger.info("Progress: %.0f%% — %s", progress * 100, message)
+
+    return transcribe(audio_path, language=language, on_progress=on_progress)
 
 
 @app.post("/transcribe/speakers", response_model=list[LabeledSegment])

@@ -189,3 +189,37 @@ def test_transcribe_explicit_none_hallucination_threshold(mock_device, mock_wav,
 
     call_kwargs = mock_model.transcribe.call_args[1]
     assert "hallucination_silence_threshold" not in call_kwargs
+
+
+@patch("transcripty.transcribe.wav_audio")
+@patch("transcripty.transcribe.detect_device", return_value="cpu")
+def test_transcribe_on_progress(mock_device, mock_wav, tmp_path):
+    """on_progress callback receives start, per-segment, and completion calls."""
+    _model_cache.clear()
+
+    audio = tmp_path / "test.wav"
+    audio.touch()
+    mock_wav.return_value.__enter__ = MagicMock(return_value=audio)
+    mock_wav.return_value.__exit__ = MagicMock(return_value=False)
+
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = (
+        [
+            _make_mock_segment("Hello", 0.0, 5.0),
+            _make_mock_segment("World", 5.0, 10.0),
+        ],
+        _make_mock_info(duration=10.0),
+    )
+
+    progress_calls = []
+
+    def on_progress(progress, message):
+        progress_calls.append((progress, message))
+
+    with patch("transcripty.transcribe._get_model", return_value=mock_model):
+        transcribe(audio, on_progress=on_progress)
+
+    # Should have: start (0.0), seg1 (0.5), seg2 (1.0), completion (1.0)
+    assert progress_calls[0] == (0.0, "Transcribing...")
+    assert progress_calls[-1] == (1.0, "Transcription complete")
+    assert len(progress_calls) == 4
