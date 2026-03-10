@@ -43,17 +43,13 @@ def setup_vocabulary():
     """Create vocabulary with domain-specific terms."""
     vocab = Vocabulary(
         [
-            "Claes & Willems",
-            "inkopen",
-            "inkoper",
-            "Whise",
-            "Colibry",
-            "radiatoren",
-            "radiator",
-            "loodgieter",
-            "offerte",
-            "Andries",
-            "zaakvoerder",
+            "TensorFlow",
+            "PyTorch",
+            "Kubernetes",
+            "microservices",
+            "API",
+            "deployment",
+            "containerization",
         ]
     )
     vocab.save(VOCAB_FILE)
@@ -132,12 +128,11 @@ def main():
     print(f"{'=' * 70}")
     full_text = " ".join(seg.text for seg in labeled)
     check_words = [
-        ("Claes & Willems", "Klaas"),
-        ("radiatoren", "radiateuren"),
-        ("loodgieter", "luchtgieter"),
-        ("offerte", "ofeste"),
-        ("zaakvoerder", "zaak voelden"),
-        ("Andries", None),
+        ("TensorFlow", "Tensorflow"),
+        ("Kubernetes", "Coobernetes"),
+        ("PyTorch", "Pie Torch"),
+        ("microservices", "micro services"),
+        ("containerization", None),
     ]
     for correct, wrong in check_words:
         found_correct = correct.lower() in full_text.lower()

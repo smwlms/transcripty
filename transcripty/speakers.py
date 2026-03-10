@@ -55,12 +55,12 @@ class SpeakerDB:
 
     Usage:
         db = SpeakerDB()
-        db.enroll("Alexander Willems", "alex_reference.mp3")
+        db.enroll("Alice", "alice_reference.mp3")
         db.save("speakers.json")
 
         db = SpeakerDB.load("speakers.json")
         names = db.identify(diarization_result)
-        # {"SPEAKER_00": "Alexander Willems"}
+        # {"SPEAKER_00": "Alice"}
     """
 
     def __init__(self) -> None:

@@ -62,7 +62,7 @@ def merge(
         segments: Transcription segments from transcribe().
         diarization: Speaker segments from diarize().
         speaker_names: Optional mapping of speaker labels to display names.
-            E.g. {"SPEAKER_00": "Alexander Willems"}. From SpeakerDB.identify().
+            E.g. {"SPEAKER_00": "Alice"}. From SpeakerDB.identify().
 
     Returns:
         List of LabeledSegment with speaker assignments.

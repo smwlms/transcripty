@@ -64,10 +64,10 @@ def test_transcribe_with_prompt(mock_device, mock_wav, tmp_path):
     )
 
     with patch("transcripty.transcribe._get_model", return_value=mock_model):
-        transcribe(audio, prompt="Claes & Willems, offerte")
+        transcribe(audio, prompt="TensorFlow, Kubernetes, API")
 
     call_kwargs = mock_model.transcribe.call_args[1]
-    assert call_kwargs["initial_prompt"] == "Claes & Willems, offerte"
+    assert call_kwargs["initial_prompt"] == "TensorFlow, Kubernetes, API"
 
 
 @patch("transcripty.transcribe.wav_audio")

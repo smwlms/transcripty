@@ -74,7 +74,7 @@ All parameters except `audio_path` default to the current [configuration](#confi
 **Prompt usage:** Pass domain-specific terms to improve accuracy:
 
 ```python
-result = transcribe("call.mp3", prompt="Claes & Willems, offerte, notaris")
+result = transcribe("call.mp3", prompt="TensorFlow, Kubernetes, microservices")
 ```
 
 Or use the [`Vocabulary`](#vocabulary) class to manage a reusable word list.
@@ -523,9 +523,9 @@ Manage a list of domain-specific words to improve Whisper transcription accuracy
 ```python
 from transcripty import Vocabulary
 
-vocab = Vocabulary(["Claes & Willems", "offerte", "notaris"])
-vocab.add("kadaster")
-vocab.remove("notaris")
+vocab = Vocabulary(["TensorFlow", "Kubernetes", "microservices"])
+vocab.add("PyTorch")
+vocab.remove("microservices")
 
 # Use as Whisper initial_prompt
 result = transcribe("call.mp3", prompt=vocab.as_prompt())
@@ -533,7 +533,7 @@ result = transcribe("call.mp3", prompt=vocab.as_prompt())
 
 #### `vocab.as_prompt()`
 
-Generate a comma-separated prompt string: `"Claes & Willems, offerte, kadaster"`.
+Generate a comma-separated prompt string: `"TensorFlow, Kubernetes, PyTorch"`.
 
 #### `vocab.save(path)` / `Vocabulary.load(path)`
 

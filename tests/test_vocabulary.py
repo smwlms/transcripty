@@ -6,16 +6,16 @@ from transcripty.vocabulary import Vocabulary
 
 
 def test_create_vocabulary():
-    vocab = Vocabulary(["Claes & Willems", "inkopen", "Whise"])
+    vocab = Vocabulary(["TensorFlow", "PyTorch", "Kubernetes"])
     assert len(vocab) == 3
 
 
 def test_add_word():
     vocab = Vocabulary()
-    vocab.add("Colibry")
-    vocab.add("Colibry")  # duplicate
+    vocab.add("FastAPI")
+    vocab.add("FastAPI")  # duplicate
     assert len(vocab) == 1
-    assert vocab.words == ["Colibry"]
+    assert vocab.words == ["FastAPI"]
 
 
 def test_remove_word():
@@ -25,8 +25,8 @@ def test_remove_word():
 
 
 def test_as_prompt():
-    vocab = Vocabulary(["Claes & Willems", "inkopen", "Whise"])
-    assert vocab.as_prompt() == "Claes & Willems, inkopen, Whise"
+    vocab = Vocabulary(["TensorFlow", "PyTorch", "Kubernetes"])
+    assert vocab.as_prompt() == "TensorFlow, PyTorch, Kubernetes"
 
 
 def test_as_prompt_empty():
@@ -35,7 +35,7 @@ def test_as_prompt_empty():
 
 
 def test_save_and_load(tmp_path: Path):
-    vocab = Vocabulary(["Claes & Willems", "inkopen", "Colibry"])
+    vocab = Vocabulary(["TensorFlow", "PyTorch", "FastAPI"])
     path = tmp_path / "vocab.json"
     vocab.save(path)
 

@@ -16,7 +16,7 @@ class Vocabulary:
     This class manages a word list and generates the prompt string.
 
     Usage:
-        vocab = Vocabulary(["Claes & Willems", "inkopen", "Whise", "Colibry"])
+        vocab = Vocabulary(["TensorFlow", "PyTorch", "Kubernetes"])
         result = transcribe("audio.mp3", prompt=vocab.as_prompt())
     """
 
