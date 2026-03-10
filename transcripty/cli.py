@@ -117,6 +117,7 @@ def benchmark(audio_path: str, models: str, language: str | None, output: str | 
     help="Output format",
 )
 @click.option("--diarize/--no-diarize", default=False, help="Enable speaker diarization")
+@click.option("--vad/--no-vad", default=None, help="Enable VAD filter (reduces hallucinations)")
 @click.option("--output", "-o", default=None, help="Output file path (default: stdout)")
 def run(
     audio_path: str,
@@ -125,6 +126,7 @@ def run(
     compute_type: str | None,
     fmt: str,
     diarize: bool,
+    vad: bool | None,
     output: str | None,
 ):
     """Transcribe an audio file."""
@@ -137,6 +139,8 @@ def run(
         kwargs["language"] = language
     if compute_type:
         kwargs["compute_type"] = compute_type
+    if vad is not None:
+        kwargs["vad_filter"] = vad
 
     if diarize:
         from transcripty.pipeline import transcribe_with_speakers

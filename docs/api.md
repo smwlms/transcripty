@@ -53,12 +53,18 @@ from transcripty import transcribe
 
 result = transcribe(
     audio_path="recording.mp3",     # str | Path — any format (WAV, MP3, M4A, ...)
-    model_size="small",             # "tiny" | "base" | "small" | "medium" | "large-v3" | "distil-large-v3"
+    model_size="small",             # "tiny"|"base"|"small"|"medium"|"large-v3"|"large-v3-turbo"|"distil-large-v3"
     language=None,                  # str | None — e.g. "nl", "en". None = auto-detect
     word_timestamps=True,           # bool — include word-level timing
     compute_type="int8",            # "int8" | "float16" | "float32" | "auto"
     beam_size=5,                    # int — beam search width
     prompt=None,                    # str | None — initial prompt to bias recognition
+    # Accuracy & anti-hallucination parameters
+    vad_filter=True,                # bool — Silero VAD filters non-speech audio
+    condition_on_previous_text=False, # bool — False prevents hallucination cascades
+    hallucination_silence_threshold=2.0, # float | None — skip hallucinated silence segments
+    repetition_penalty=1.1,         # float — penalize repeated tokens (>1.0)
+    no_repeat_ngram_size=3,         # int — prevent exact n-gram repetitions
 )
 ```
 
@@ -431,19 +437,39 @@ print(cfg.language)         # None (auto-detect)
 | `max_cached_models` | `int`         | `2`       | `TRANSCRIPTY_MAX_CACHED_MODELS` | Max models in cache (>=1)  |
 | `num_workers`       | `int`         | `1`       | `TRANSCRIPTY_NUM_WORKERS`       | Worker count (>=1)         |
 
+**Accuracy & anti-hallucination fields:**
+
+| Field                             | Type            | Default | Env var                                       | Description                    |
+| --------------------------------- | --------------- | ------- | --------------------------------------------- | ------------------------------ |
+| `vad_filter`                      | `bool`          | `False` | `TRANSCRIPTY_VAD_FILTER`                      | Silero VAD filters non-speech  |
+| `condition_on_previous_text`      | `bool`          | `True`  | `TRANSCRIPTY_CONDITION_ON_PREVIOUS_TEXT`      | Use previous output as context |
+| `hallucination_silence_threshold` | `float \| None` | `None`  | `TRANSCRIPTY_HALLUCINATION_SILENCE_THRESHOLD` | Skip hallucinated silence      |
+| `repetition_penalty`              | `float`         | `1.0`   | `TRANSCRIPTY_REPETITION_PENALTY`              | Penalize repeated tokens       |
+| `no_repeat_ngram_size`            | `int`           | `0`     | `TRANSCRIPTY_NO_REPEAT_NGRAM_SIZE`            | Block n-gram repetitions       |
+| `cpu_threads`                     | `int`           | `0`     | `TRANSCRIPTY_CPU_THREADS`                     | CTranslate2 threads (0=auto)   |
+
+> **Note:** On machines with 16+ GB RAM, hardware detection automatically sets optimized defaults for large models (vad_filter=True, condition_on_previous_text=False, etc.). These parameters improve accuracy for large models but can reduce quality on smaller models.
+
 ### YAML config file
 
 Create `~/.transcripty/config.yaml`:
 
 ```yaml
-model_size: medium
-compute_type: float16
+model_size: large-v3
+compute_type: int8
 language: nl
 beam_size: 5
 word_timestamps: true
 min_speakers: 1
 max_speakers: 6
 max_cached_models: 3
+
+# Accuracy settings (recommended for large models)
+vad_filter: true
+condition_on_previous_text: false
+hallucination_silence_threshold: 2.0
+repetition_penalty: 1.1
+no_repeat_ngram_size: 3
 ```
 
 Requires `pydantic-settings[yaml]` for YAML support.
@@ -671,6 +697,7 @@ transcripty run meeting.mp3 --diarize --format srt
 | `--compute-type`             | config         | `int8` / `float16` / `float32` / `auto` |
 | `--format`                   | `text`         | Output format: `text` / `srt` / `vtt`   |
 | `--diarize` / `--no-diarize` | `--no-diarize` | Enable speaker diarization              |
+| `--vad` / `--no-vad`         | config         | Enable/disable VAD filter               |
 | `--output`, `-o`             | stdout         | Output file path                        |
 
 ### `transcripty benchmark`
@@ -712,7 +739,16 @@ from transcripty import (
 app = FastAPI()
 
 # Configure once at startup
-configure(model_size="medium", compute_type="float16", word_timestamps=True)
+configure(
+    model_size="large-v3",
+    compute_type="int8",
+    word_timestamps=True,
+    vad_filter=True,
+    condition_on_previous_text=False,
+    hallucination_silence_threshold=2.0,
+    repetition_penalty=1.1,
+    no_repeat_ngram_size=3,
+)
 
 
 @app.post("/transcribe", response_model=TranscriptionResult)

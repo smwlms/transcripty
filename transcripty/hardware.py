@@ -56,6 +56,14 @@ class HardwareProfile:
         else:
             settings["num_workers"] = 1
 
+        # Accuracy & anti-hallucination defaults (only for large models)
+        if settings["model_size"].startswith("large"):
+            settings["vad_filter"] = True
+            settings["condition_on_previous_text"] = False
+            settings["hallucination_silence_threshold"] = 2.0
+            settings["repetition_penalty"] = 1.1
+            settings["no_repeat_ngram_size"] = 3
+
         return settings
 
 

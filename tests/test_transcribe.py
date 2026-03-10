@@ -130,3 +130,62 @@ def test_model_cache_key_format():
     assert "large-v3:int8:cuda" not in _model_cache
 
     _model_cache.clear()
+
+
+@patch("transcripty.transcribe.wav_audio")
+@patch("transcripty.transcribe.detect_device", return_value="cpu")
+def test_transcribe_vad_and_accuracy_params(mock_device, mock_wav, tmp_path):
+    """Accuracy parameters are passed through to faster-whisper."""
+    _model_cache.clear()
+
+    audio = tmp_path / "test.wav"
+    audio.touch()
+    mock_wav.return_value.__enter__ = MagicMock(return_value=audio)
+    mock_wav.return_value.__exit__ = MagicMock(return_value=False)
+
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = (
+        [_make_mock_segment()],
+        _make_mock_info(),
+    )
+
+    with patch("transcripty.transcribe._get_model", return_value=mock_model):
+        transcribe(
+            audio,
+            vad_filter=True,
+            condition_on_previous_text=False,
+            hallucination_silence_threshold=2.0,
+            repetition_penalty=1.1,
+            no_repeat_ngram_size=3,
+        )
+
+    call_kwargs = mock_model.transcribe.call_args[1]
+    assert call_kwargs["vad_filter"] is True
+    assert call_kwargs["condition_on_previous_text"] is False
+    assert call_kwargs["hallucination_silence_threshold"] == 2.0
+    assert call_kwargs["repetition_penalty"] == 1.1
+    assert call_kwargs["no_repeat_ngram_size"] == 3
+
+
+@patch("transcripty.transcribe.wav_audio")
+@patch("transcripty.transcribe.detect_device", return_value="cpu")
+def test_transcribe_explicit_none_hallucination_threshold(mock_device, mock_wav, tmp_path):
+    """Explicitly passing None omits hallucination_silence_threshold."""
+    _model_cache.clear()
+
+    audio = tmp_path / "test.wav"
+    audio.touch()
+    mock_wav.return_value.__enter__ = MagicMock(return_value=audio)
+    mock_wav.return_value.__exit__ = MagicMock(return_value=False)
+
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = (
+        [_make_mock_segment()],
+        _make_mock_info(),
+    )
+
+    with patch("transcripty.transcribe._get_model", return_value=mock_model):
+        transcribe(audio, hallucination_silence_threshold=None)
+
+    call_kwargs = mock_model.transcribe.call_args[1]
+    assert "hallucination_silence_threshold" not in call_kwargs

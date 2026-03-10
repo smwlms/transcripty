@@ -15,21 +15,31 @@ from transcripty.models import Segment, TranscriptionResult, Word
 
 logger = logging.getLogger(__name__)
 
-ModelSize = Literal["tiny", "base", "small", "medium", "large-v3", "distil-large-v3"]
+_UNSET = object()  # sentinel to distinguish "not provided" from None
+
+ModelSize = Literal[
+    "tiny", "base", "small", "medium",
+    "large-v3", "large-v3-turbo", "distil-large-v3",
+]
 ComputeType = Literal["int8", "float16", "float32", "auto"]
 
 _model_cache = ModelCache("whisper model")
 
 
-def _get_model(model_size: str, compute_type: str, device: str):
+def _get_model(model_size: str, compute_type: str, device: str, cpu_threads: int = 0):
     """Get or create a cached WhisperModel instance (thread-safe)."""
     from faster_whisper import WhisperModel
 
     cache_key = f"{model_size}:{compute_type}:{device}"
     _model_cache.max_size = get_config().max_cached_models
+
+    kwargs: dict = {"device": device, "compute_type": compute_type}
+    if cpu_threads > 0:
+        kwargs["cpu_threads"] = cpu_threads
+
     return _model_cache.get_or_load(
         cache_key,
-        lambda: WhisperModel(model_size, device=device, compute_type=compute_type),
+        lambda: WhisperModel(model_size, **kwargs),
     )
 
 
@@ -46,6 +56,11 @@ def transcribe(
     compute_type: ComputeType | None = None,
     beam_size: int | None = None,
     prompt: str | None = None,
+    vad_filter: bool | None = None,
+    condition_on_previous_text: bool | None = None,
+    hallucination_silence_threshold: float | None = _UNSET,
+    repetition_penalty: float | None = None,
+    no_repeat_ngram_size: int | None = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file using faster-whisper.
 
@@ -57,6 +72,13 @@ def transcribe(
         compute_type: Quantization type. Defaults to config value.
         beam_size: Beam size for decoding. Defaults to config value.
         prompt: Initial prompt to bias recognition toward specific words/phrases.
+        vad_filter: Enable Silero VAD to filter non-speech audio. Reduces hallucinations.
+        condition_on_previous_text: Use previous output as prompt for next segment.
+            Set to False to reduce hallucination cascades on long audio.
+        hallucination_silence_threshold: Skip segments generated after this many
+            seconds of silence (requires word_timestamps=True).
+        repetition_penalty: Penalize repeated tokens (>1.0 reduces repetitions).
+        no_repeat_ngram_size: Prevent repetition of n-grams of this size.
 
     Returns:
         TranscriptionResult with segments, detected language, and duration.
@@ -80,13 +102,27 @@ def transcribe(
     beam_size = beam_size if beam_size is not None else cfg.beam_size
     word_timestamps = word_timestamps if word_timestamps is not None else cfg.word_timestamps
     language = language if language is not None else cfg.language
+    vad_filter = vad_filter if vad_filter is not None else cfg.vad_filter
+    condition_on_previous_text = (
+        condition_on_previous_text
+        if condition_on_previous_text is not None
+        else cfg.condition_on_previous_text
+    )
+    repetition_penalty = (
+        repetition_penalty if repetition_penalty is not None else cfg.repetition_penalty
+    )
+    no_repeat_ngram_size = (
+        no_repeat_ngram_size if no_repeat_ngram_size is not None else cfg.no_repeat_ngram_size
+    )
+    if hallucination_silence_threshold is _UNSET:
+        hallucination_silence_threshold = cfg.hallucination_silence_threshold
 
     # Determine device for whisper
     device = detect_device()
     # CTranslate2 (used by faster-whisper) doesn't support MPS
     whisper_device = "auto" if device == "mps" else device
 
-    model = _get_model(model_size, compute_type, whisper_device)
+    model = _get_model(model_size, compute_type, whisper_device, cfg.cpu_threads)
 
     with wav_audio(audio_path) as wav_path:
         logger.info("Transcribing %s...", wav_path.name)
@@ -96,10 +132,18 @@ def transcribe(
             "beam_size": beam_size,
             "language": language,
             "word_timestamps": word_timestamps,
+            "vad_filter": vad_filter,
+            "condition_on_previous_text": condition_on_previous_text,
+            "repetition_penalty": repetition_penalty,
+            "no_repeat_ngram_size": no_repeat_ngram_size,
         }
         if prompt:
             transcribe_kwargs["initial_prompt"] = prompt
             logger.info("Using custom prompt: %s", prompt[:80])
+        if hallucination_silence_threshold is not None:
+            transcribe_kwargs["hallucination_silence_threshold"] = (
+                hallucination_silence_threshold
+            )
 
         segments_gen, info = model.transcribe(str(wav_path), **transcribe_kwargs)
 

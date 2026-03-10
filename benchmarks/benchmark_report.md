@@ -1,113 +1,114 @@
 # Transcripty Benchmark Report
 
-**Date:** 2026-03-10 10:21
-**Reference:** Plaud transcription service (~1 min processing)
+**Date:** 2026-03-10 11:42
+**Hardware:** Apple M1 Max, 10 cores, 32 GB RAM
+**Compute type:** int8 (CTranslate2 on CPU)
+**Reference:** Plaud cloud transcription
 
 ---
 
 ## 1. Speaker Enrollment
 
 - **Speaker:** Samuel Willems
-- **Audio:** 2026-03-10 07:49:20 (105s, NL voorleestekst)
-- **Diarization time:** 11.5s
+- **Audio:** 105s NL read-aloud text
+- **Diarization time:** 0s
 - **Embedding dimension:** 256
-- **Saved to:** `speakers.json`
 
 ---
 
-## 2. Model Comparison — Enrollment Audio (105s)
+## 2. Model Comparison — Short Audio (105s)
 
-Vergelijking van alle 6 Whisper modellen op de enrollment audio, met Plaud als referentie.
+All models tested with two parameter presets:
+- **default:** vanilla faster-whisper settings
+- **optimized:** VAD filter, no condition on previous text, hallucination threshold, repetition penalty
 
-| Model | Tijd | RT Factor | WER | Fouten | Woorden |
-|-------|------|-----------|-----|--------|---------|
-| tiny | 4.94s | 0.047x | **40.9%** | 108/264 | 287 |
-| base | 6.25s | 0.059x | **24.6%** | 65/264 | 270 |
-| small | 15.67s | 0.149x | **9.5%** | 25/264 | 265 |
-| medium | 70.99s | 0.673x | **5.3%** | 14/264 | 265 |
-| large-v3 | 73.19s | 0.694x | **1.9%** | 5/264 | 265 |
-| distil-large-v3 | 104.44s | 0.991x | **96.2%** | 254/264 | 185 |
+### Preset: `default`
 
-**Beste kwaliteit:** `large-v3` (WER 1.9%)
-**Snelste:** `tiny` (4.94s, WER 40.9%)
+| Model | Time | RT Factor | WER | Errors | Words |
+|-------|------|-----------|-----|--------|-------|
+| tiny | 5.46s | 0.052x | **40.9%** | 108/264 | 287 |
+| base | 6.51s | 0.062x | **24.6%** | 65/264 | 270 |
+| small | 15.71s | 0.149x | **9.5%** | 25/264 | 265 |
+| medium | 46.64s | 0.442x | **5.3%** | 14/264 | 265 |
+| large-v3 | 74.72s | 0.709x | **1.9%** | 5/264 | 265 |
+| large-v3-turbo | 71.5s | 0.678x | **2.7%** | 7/264 | 266 |
+| distil-large-v3 | 18.75s | 0.178x | **96.2%** | 254/264 | 185 |
 
-### WER Details per Model
+### Preset: `optimized`
 
-#### tiny
-- WER: 40.9% (108 fouten op 264 woorden)
-- Substitutions: 77, Insertions: 27, Deletions: 4
-- Taal: nl (1.0)
-- Preview: _De 8en behoon met de regen die tegen het raam tiktig. Ik schonk een kopkoffe in en je kan tafel zitten, maar afvraagert wat de dag zal brengen. Mijn b..._
+```
+vad_filter=True
+condition_on_previous_text=False
+hallucination_silence_threshold=2.0
+repetition_penalty=1.1
+no_repeat_ngram_size=3
+```
 
-#### base
-- WER: 24.6% (65 fouten op 264 woorden)
-- Substitutions: 45, Insertions: 13, Deletions: 7
-- Taal: nl (1.0)
-- Preview: _De ochtend begon met regen die tegen het raam tikte. Ik schoonk een kopkoffie in en ga je kan aan tafel zitten, maar afvragen het wat de dag zal breng..._
+| Model | Time | RT Factor | WER | Errors | Words |
+|-------|------|-----------|-----|--------|-------|
+| tiny | 3.71s | 0.035x | **44.7%** | 118/264 | 270 |
+| base | 5.68s | 0.054x | **26.1%** | 69/264 | 271 |
+| small | 11.59s | 0.11x | **11.7%** | 31/264 | 262 |
+| medium | 29.25s | 0.277x | **9.8%** | 26/264 | 264 |
+| large-v3 | 49.22s | 0.467x | **0.8%** | 2/264 | 263 |
+| large-v3-turbo | 16.26s | 0.154x | **1.5%** | 4/264 | 263 |
+| distil-large-v3 | 18.34s | 0.174x | **94.3%** | 249/264 | 252 |
 
-#### small
-- WER: 9.5% (25 fouten op 264 woorden)
-- Substitutions: 18, Insertions: 4, Deletions: 3
-- Taal: nl (1.0)
-- Preview: _De ochtend begon met regen die tegen het raam tikten. Ik schonk een kop koffie in en ging aan tafel zitten, me afvraagend wat de dag zou brengen. Mijn..._
+### Best models
 
-#### medium
-- WER: 5.3% (14 fouten op 264 woorden)
-- Substitutions: 9, Insertions: 3, Deletions: 2
-- Taal: nl (1.0)
-- Preview: _De ochtend begon met regen die tegen het raam tikte. Ik schonk een kop koffie in en ging aan tafel zitten, me afvraagend wat de dag zou brengen. Mijn ..._
+- **Best default:** `large-v3` (WER 1.9%)
+- **Best optimized:** `large-v3` (WER 0.8%)
 
-#### large-v3
-- WER: 1.9% (5 fouten op 264 woorden)
-- Substitutions: 2, Insertions: 2, Deletions: 1
-- Taal: nl (1.0)
-- Preview: _De ochtend begon met regen die tegen het raam tikte. Ik schonk een kop koffie in en ging aan tafel zitten, me afvragend wat de dag zou brengen. Mijn b..._
+### WER improvement (default → optimized)
 
-#### distil-large-v3
-- WER: 96.2% (254 fouten op 264 woorden)
-- Substitutions: 175, Insertions: 0, Deletions: 79
-- Taal: nl (1.0)
-- Preview: _The o'clock with the rain ticked. I skunked a cup of coffee in, and I went on the table and asked me asking what the day would bring. My bufrau had a ..._
-
----
-
-## 3. Strategiebespreking (57 min, multi-speaker)
-
-Vergelijking van medium en large-v3 op een echte vergadering met speaker diarization en identificatie.
-
-| Model | Transcriptie | Diarization | Totaal | RT Factor | WER | Sprekers |
-|-------|-------------|-------------|--------|-----------|-----|----------|
-| medium | 1253.63s | 197.89s | 1451.52s | 0.423x | **46.3%** | Samuel Willems (597), SPEAKER_01 (73), SPEAKER_00 (170), SPEAKER_02 (41), UNKNOWN (83) |
-| large-v3 | 5662.27s | 201.86s | 5864.13s | 1.709x | **34.7%** | Samuel Willems (955), SPEAKER_01 (131), SPEAKER_00 (332), UNKNOWN (179), SPEAKER_02 (99) |
-
-### medium — Details
-- Sprekers gedetecteerd: 4
-- Sprekers geidentificeerd: {'SPEAKER_03': 'Samuel Willems'}
-- Segmenten per spreker: {'Samuel Willems': 597, 'SPEAKER_01': 73, 'SPEAKER_00': 170, 'SPEAKER_02': 41, 'UNKNOWN': 83}
-- WER: 46.3% (3889/8396 fouten)
-
-### large-v3 — Details
-- Sprekers gedetecteerd: 4
-- Sprekers geidentificeerd: {'SPEAKER_03': 'Samuel Willems'}
-- Segmenten per spreker: {'Samuel Willems': 955, 'SPEAKER_01': 131, 'SPEAKER_00': 332, 'UNKNOWN': 179, 'SPEAKER_02': 99}
-- WER: 34.7% (2917/8396 fouten)
+| Model | Default WER | Optimized WER | Improvement |
+|-------|-------------|---------------|-------------|
+| tiny | 40.9% | 44.7% | -3.8pp |
+| base | 24.6% | 26.1% | -1.5pp |
+| small | 9.5% | 11.7% | -2.2pp |
+| medium | 5.3% | 9.8% | -4.5pp |
+| large-v3 | 1.9% | 0.8% | +1.1pp |
+| large-v3-turbo | 2.7% | 1.5% | +1.2pp |
+| distil-large-v3 | 96.2% | 94.3% | +1.9pp |
 
 ---
 
-## 4. Conclusie: Transcripty vs. Plaud
+## 4. Recommendations
 
-| Criterium | Plaud | Transcripty (best) |
-|-----------|-------|--------------------|
-| Verwerkingstijd (105s audio) | ~60s (cloud) | 73.19s (lokaal) |
-| WER vs referentie | 0% (= referentie) | 1.9% |
-| Beste model | — | `large-v3` |
-| Snelste model | — | `tiny` (4.94s) |
-| Speaker diarization | Ja (cloud) | Ja (pyannote, lokaal) |
-| Speaker identification | Nee | Ja (SpeakerDB) |
-| Privacy | Cloud | 100% lokaal |
-| Kosten | Plaud abonnement | Gratis (open source) |
+### Choosing a model
 
-### Strategiebespreking (57 min)
-- Beste model: `large-v3` (WER 34.7%)
-- Totale verwerkingstijd: 5864.13s (1.709x realtime)
-- Samuel Willems herkend: True
+| Use case | Model | Preset | Expected WER |
+|----------|-------|--------|--------------|
+| Maximum accuracy | large-v3 | optimized | Best |
+| Good balance | large-v3-turbo | optimized | Very good |
+| Fast processing | medium | optimized | Good |
+| Quick draft | small | optimized | Acceptable |
+
+### Optimized parameters (recommended)
+
+```python
+from transcripty import transcribe
+
+result = transcribe(
+    "audio.mp3",
+    model_size="large-v3",
+    language="nl",
+    vad_filter=True,
+    condition_on_previous_text=False,
+    hallucination_silence_threshold=2.0,
+    repetition_penalty=1.1,
+    no_repeat_ngram_size=3,
+)
+```
+
+### Parameter explanation
+
+- **vad_filter:** Silero VAD filters non-speech audio, reducing hallucinations
+- **condition_on_previous_text:** When False, prevents hallucination cascades on long audio
+- **hallucination_silence_threshold:** Skips segments generated after silence periods
+- **repetition_penalty:** Penalizes repeated tokens (>1.0 reduces loops)
+- **no_repeat_ngram_size:** Prevents exact n-gram repetitions
+
+### What is WER?
+
+Word Error Rate (WER) measures transcription accuracy. It counts substitutions (wrong words), insertions (extra words), and deletions (missing words) divided by the total reference words. Lower is better — 0% is perfect.

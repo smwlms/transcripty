@@ -53,6 +53,14 @@ class TranscriptyConfig(BaseSettings):
     beam_size: int = 5
     word_timestamps: bool = True
 
+    # Accuracy & anti-hallucination
+    vad_filter: bool = False
+    condition_on_previous_text: bool = True
+    hallucination_silence_threshold: float | None = None
+    repetition_penalty: float = 1.0
+    no_repeat_ngram_size: int = 0
+    cpu_threads: int = 0  # 0 = auto (CTranslate2 default)
+
     # Diarization
     hf_token: str | None = None
     num_speakers: int | None = None
