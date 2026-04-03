@@ -1,0 +1,78 @@
+{
+  "description": "Ground truth transcripties voor WER evaluatie. Handmatig gecorrigeerd door Samuel (2026-04-03).",
+  "created": "2026-04-03",
+  "samples": [
+    {
+      "id": "samuel_zakelijk",
+      "recording_id": 133,
+      "path": "storage/1/40527e4d98a6bd5ef5455401c5d28c96.mp3",
+      "duration_s": 34,
+      "emotion": "zakelijk/neutraal",
+      "speaker": "Samuel",
+      "ground_truth": "Zakelijk en Neutraal. Hi, met Samuel van Claes en Willems. Ik bel u even op naar aanleiding van uw interesse in het pand aan de Hoogstraat. Het betreft een rijwoning met drie slaapkamers, een EPC-label B en een kadastraal inkomen van 850 euro. De vraagprijs is 325.000 euro. Er is al een bod binnengekomen, maar de opschortende voorwaarden zijn nog niet vervuld. De notaris heeft bevestigd dat de stedenbouwkundige vergunning in orde is. Wenst u een bezoek in te plannen deze week?"
+    },
+    {
+      "id": "samuel_enthousiast",
+      "recording_id": 132,
+      "path": "storage/1/22c2bc3bce0ec10b245b1d297177ddfc.mp3",
+      "duration_s": 33,
+      "emotion": "enthousiast/blij",
+      "speaker": "Samuel",
+      "ground_truth": "Enthousiast, Blij. Hi, luister, ik heb fantastisch nieuws! Die villa aan het Gemeenteplein? Verkocht! En niet zomaar verkocht, maar 15.000 euro boven de vraagprijs! De koper was zo enthousiast dat hij de compromis meteen wou tekenen. Geen opschortende voorwaarden, geen gedoe. De notaris kan volgende week al de akte verlijden. En weet je wat het beste is? De eigenaar was zo tevreden dat hij ons ook zijn appartement in Antwerpen wil laten verkopen. Dat wordt weer een mooie commissie! Ik trakteer vanavond op een pintje."
+    },
+    {
+      "id": "samuel_bezorgd",
+      "recording_id": 131,
+      "path": "storage/1/58a8cfb498507a44803377a2ed50db96.mp3",
+      "duration_s": 39,
+      "emotion": "serieus/bezorgd",
+      "speaker": "Samuel",
+      "ground_truth": "Serieus, Bezorgd. Ik moet u helaas meedelen dat er een probleem is opgedoken bij het dossier. De inspectie heeft een ernstige vochtproblematiek vastgesteld in de kelder en de bijkeuken. Bovendien blijkt er een erfdienstbaarheid te bestaan die niet vermeld stond in de oorspronkelijke documenten. Dit betekent dat de buurman recht van overgang heeft over een deel van de tuin. De onroerende voorheffing is ook hoger dan initieel gecommuniceerd. Ik raad u aan om de situatie grondig te laten evalueren vooraleer u een definitieve beslissing neemt. We moeten hier echt voorzichtig mee omgaan."
+    },
+    {
+      "id": "samuel_casual",
+      "recording_id": 130,
+      "path": "storage/1/a6add74ea64f460cb70b499e17d63a06.mp3",
+      "duration_s": 37,
+      "emotion": "casual/ontspannen",
+      "speaker": "Samuel",
+      "ground_truth": "Casual, Ontspannen. Ja nee, het was eigenlijk een heel rustig weekend. Zaterdag heb ik de hele voormiddag in de tuin gewerkt. Die haag moest echt gesnoeid worden, dat was al weken aan het uitstellen. Daarna zijn we met de kinderen naar het zwembad geweest. Zondag hebben we gewoon uitgebreid ontbeten, zo met verse croissants en vers geperst sinaasappelsap, en dan zijn we naar oma en opa gereden. Die hadden weer veel te veel eten klaarstaan natuurlijk. En gisteren avond heb ik nog wat Netflix gekeken, een serie over architectuur, eigenlijk best interessant. Maar goed, vanavond weer aan de slag."
+    },
+    {
+      "id": "alex_zakelijk",
+      "recording_id": 138,
+      "path": "storage/2/ea02e9b04a554a685fb091d909228ed8.mp3",
+      "duration_s": 37,
+      "emotion": "zakelijk/neutraal",
+      "speaker": "Alex",
+      "ground_truth": "Hi, met Alex van Claes en Willems. Ik bel u even op naar aanleiding van uw interesse in het pand aan de Hoogstraat. Het betreft een rijwoning met drie slaapkamers, een EPC-label B en een kadastraal inkomen van 850 euro. De vraagprijs is 325.000 euro. Er is al een bod binnengekomen, maar de opschortende voorwaarden zijn nog niet vervuld. De notaris heeft bevestigd dat de stedenbouwkundige vergunning in orde zijn, in orde is. Wenst u een bezoek in de plannen, in te plannen deze week?"
+    },
+    {
+      "id": "alex_enthousiast",
+      "recording_id": 137,
+      "path": "storage/2/0eb0eb03ef6d4069d68664f670311df3.mp3",
+      "duration_s": 29,
+      "emotion": "enthousiast/blij",
+      "speaker": "Alex",
+      "ground_truth": "Hi, ik heb fantastisch nieuws! Die villa aan het Gemeenteplein Verkocht! En niet zomaar verkocht, maar 15.000 euro boven de vraagprijs! De koper was zo enthousiast dat hij de compromis meteen wou tekenen. Geen opschortende voorwaarden, geen gedoe. De notaris kan volgende week al de akte verlijden. En weet je wat het beste is? De eigenaar was zo tevreden dat hij ons ook zijn appartement in Antwerpen wil laten verkopen. Dat wordt weer een mooie commissie! Ik trakteer vanavond op een pintje."
+    },
+    {
+      "id": "alex_bezorgd",
+      "recording_id": 136,
+      "path": "storage/2/0bdbc6c1d901f0ba14d0cb96a6678eb8.mp3",
+      "duration_s": 41,
+      "emotion": "serieus/bezorgd",
+      "speaker": "Alex",
+      "ground_truth": "Ik moet u helaas meedelen dat er een probleem is opgedoken bij het dossier. De inspectie heeft een ernstige vochtproblematiek vastgesteld in de kelder en de bijkeuken. Bovendien blijkt er een erfdienstbaarheid te bestaan die niet vermeld stond in de oorspronkelijke documenten. Dit betekent dat de buurman recht van overgang heeft over een deel van de tuin. De onroerende voorheffing is ook hoger dan initieel gecommuniceerd. Ik raad u aan om de situatie grondig te laten evalueren vooraleer u een definitieve beslissing neemt. We moeten hier echt voorzichtig mee omspringen."
+    },
+    {
+      "id": "alex_casual",
+      "recording_id": 135,
+      "path": "storage/2/15018f6db95e623953bf113a7c68a595.mp3",
+      "duration_s": 46,
+      "emotion": "casual/ontspannen",
+      "speaker": "Alex",
+      "ground_truth": "Ja nee, het was eigenlijk een heel rustig weekend. Zaterdag heb ik de hele voormiddag in de tuin gewerkt. Die haag moest echt gesnoeid worden, het was al weken uitgesteld. Daarna zijn we met de kinderen naar het zwembad geweest. Zondag gaan we, hebben we gewoon uitgebreid ontbeten, zo met verse croissants en vers geperst sinaasappelsap, en zijn we naar opa en oma gereden. Die hadden weer veel te veel eten klaar staan natuurlijk. En gisteren avond heb ik nog wat Netflix gekeken, een serie over architectuur, eigenlijk best interessant. Maar goed, vanavond weer aan de slag."
+    }
+  ]
+}

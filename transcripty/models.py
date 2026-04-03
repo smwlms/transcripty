@@ -14,6 +14,7 @@ class Word(BaseModel):
     start: float
     end: float
     probability: float = 0.0
+    language: str | None = None
 
 
 class Segment(BaseModel):
@@ -23,6 +24,9 @@ class Segment(BaseModel):
     start: float
     end: float
     words: list[Word] = []
+    language: str | None = None
+    avg_logprob: float | None = None
+    no_speech_prob: float | None = None
 
 
 class TranscriptionResult(BaseModel):
@@ -58,6 +62,7 @@ class LabeledSegment(BaseModel):
     end: float
     speaker: str
     words: list[Word] = []
+    language: str | None = None
 
 
 class WordHighlight(BaseModel):

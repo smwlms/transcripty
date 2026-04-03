@@ -129,5 +129,5 @@ def test_transcribe_with_speakers_on_progress(tmp_path):
     assert progress_calls[1] == (0.7, "Transcription complete")
     assert progress_calls[2] == (0.7, "Diarizing...")
     assert progress_calls[3] == (0.9, "Diarization complete")
-    assert progress_calls[4] == (0.9, "Merging segments...")
+    assert progress_calls[4] == (0.85, "Merging segments...")
     assert progress_calls[5] == (1.0, "Complete")

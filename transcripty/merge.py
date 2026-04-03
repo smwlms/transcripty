@@ -89,6 +89,7 @@ def merge(
                 end=seg.end,
                 speaker=speaker,
                 words=seg.words,
+                language=seg.language,
             )
         )
 

@@ -11,8 +11,15 @@ venv/
 *.mp3
 *.m4a
 speakers.json
+speakers_*.json
 vocabulary.json
 benchmark*.json
+echo.db
+*.jsonl
+benchmarks/*_results*.json
+benchmarks/speakers_*.json
+benchmarks/si_*.json
+benchmarks/wer_*.json
 .ruff_cache/
 .pytest_cache/
 htmlcov/

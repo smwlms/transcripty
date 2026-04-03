@@ -2,7 +2,7 @@
 
 ## Quick context
 
-Python package dat Whisper transcriptie en Pyannote speaker diarization aanbiedt als clean, herbruikbare library. Geëxtraheerd uit TranscriberApp. Primaire consumer: Plaude (FastAPI async server).
+Python package dat Whisper transcriptie en Pyannote speaker diarization aanbiedt als clean, herbruikbare library. Geëxtraheerd uit TranscriberApp. Primaire consumer: Echo (FastAPI async server).
 
 ## Tech stack
 
@@ -66,4 +66,4 @@ transcripty benchmark audio.mp3    # Benchmark models
 - **data-engineer**: Geen database in dit project, pure library
 - **reviewer**: Let op thread safety in caches, lazy import pattern, config singleton
 - **qa**: Tests draaien zonder GPU/models via mocks, conftest.py reset singletons
-- **pm**: Package is dependency voor Plaude (FastAPI), thread safety is kritiek
+- **pm**: Package is dependency voor Echo (FastAPI), thread safety is kritiek

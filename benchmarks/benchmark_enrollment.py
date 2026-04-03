@@ -1,5 +1,7 @@
 """Benchmark: Speaker enrollment, model comparison, and Plaud comparison.
 
+Uses the Echo database for reference data.
+
 Steps:
 1. Enroll Samuel Willems from enrollment audio (105s NL read-aloud)
 2. Benchmark all 7 Whisper models on enrollment audio (default + optimized)
@@ -30,13 +32,13 @@ logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 logger = logging.getLogger("benchmark")
 
 # Paths
-PLAUDE_DB = Path(
+ECHO_DB = Path(
     os.environ.get(
-        "PLAUDE_DB",
-        Path.home() / "Documents/Projecten/Plaude/plaude.db",
+        "ECHO_DB",
+        Path.home() / "Documents/Projecten/Plaude/echo.db",
     )
 )
-PLAUDE_STORAGE = PLAUDE_DB.parent / "storage"
+ECHO_STORAGE = ECHO_DB.parent / "storage"
 SPEAKERS_FILE = Path(__file__).parent / "speakers.json"
 REPORT_FILE = Path(__file__).parent / "benchmark_report.md"
 RESULTS_FILE = Path(__file__).parent / "benchmark_enrollment_results.json"
@@ -79,8 +81,8 @@ PARAM_PRESETS = {
 
 
 def get_recording(plaud_file_id: str) -> dict:
-    """Get recording from Plaude DB."""
-    conn = sqlite3.connect(PLAUDE_DB)
+    """Get recording from Echo DB."""
+    conn = sqlite3.connect(ECHO_DB)
     conn.row_factory = sqlite3.Row
     row = conn.execute(
         "SELECT * FROM recordings WHERE plaud_file_id = ?",
@@ -162,7 +164,7 @@ def step1_enroll():
     from transcripty.speakers import SpeakerDB
 
     rec = get_recording(ENROLLMENT_ID)
-    audio_path = PLAUDE_STORAGE / rec["storage_path"].replace(
+    audio_path = ECHO_STORAGE / rec["storage_path"].replace(
         "storage/", ""
     )
 
@@ -243,7 +245,7 @@ def _run_transcription(audio_path, model_size, preset_name, plaud_text):
 def step2_benchmark_enrollment():
     """Step 2: Benchmark all models × all presets on enrollment audio."""
     rec = get_recording(ENROLLMENT_ID)
-    audio_path = PLAUDE_STORAGE / rec["storage_path"].replace(
+    audio_path = ECHO_STORAGE / rec["storage_path"].replace(
         "storage/", ""
     )
     plaud_text = rec["transcription_text"]
@@ -279,7 +281,7 @@ def step3_strategy_benchmark():
     from transcripty.speakers import SpeakerDB
 
     rec = get_recording(STRATEGY_ID)
-    audio_path = PLAUDE_STORAGE / rec["storage_path"].replace(
+    audio_path = ECHO_STORAGE / rec["storage_path"].replace(
         "storage/", ""
     )
     plaud_text = rec["transcription_text"]

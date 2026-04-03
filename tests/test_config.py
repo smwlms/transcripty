@@ -12,7 +12,7 @@ from transcripty.config import (
 
 def test_default_config():
     cfg = get_config()
-    assert cfg.model_size in ("tiny", "base", "small", "medium", "large-v3", "distil-large-v3")
+    assert cfg.model_size in ("tiny", "base", "small", "medium", "large-v3", "large-v3-turbo", "distil-large-v3")
     assert cfg.max_cached_models == 2
     assert cfg.num_workers >= 1
 

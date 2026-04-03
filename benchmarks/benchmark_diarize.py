@@ -15,8 +15,8 @@ logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 
 from transcripty import diarize, merge, transcribe  # noqa: E402
 
-PLAUDE_ROOT = Path(os.environ.get("PLAUDE_ROOT", Path.home() / "Documents/Projecten/Plaude"))
-DB_PATH = PLAUDE_ROOT / "plaude.db"
+ECHO_ROOT = Path(os.environ.get("ECHO_ROOT", Path.home() / "Documents/Projecten/Plaude"))
+DB_PATH = ECHO_ROOT / "echo.db"
 RECORDING_ID = int(os.environ.get("RECORDING_ID", "47"))
 
 
@@ -39,7 +39,7 @@ def fmt_ts(seconds: float) -> str:
 
 def main():
     ref = get_reference(RECORDING_ID)
-    audio_path = PLAUDE_ROOT / ref["storage_path"]
+    audio_path = ECHO_ROOT / ref["storage_path"]
     duration_s = ref["duration_ms"] / 1000
     model_size = "medium"
 

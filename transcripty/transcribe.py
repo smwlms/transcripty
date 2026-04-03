@@ -53,6 +53,7 @@ def transcribe(
     audio_path: str | Path,
     model_size: ModelSize | None = None,
     language: str | None = None,
+    multilingual: bool | None = None,
     word_timestamps: bool | None = None,
     compute_type: ComputeType | None = None,
     beam_size: int | None = None,
@@ -62,6 +63,8 @@ def transcribe(
     hallucination_silence_threshold: float | None = _UNSET,
     repetition_penalty: float | None = None,
     no_repeat_ngram_size: int | None = None,
+    temperature: float | list[float] | tuple[float, ...] | None = None,
+    chunk_length: int | None = None,
     on_progress: Callable[[float, str], None] | None = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file using faster-whisper.
@@ -70,6 +73,12 @@ def transcribe(
         audio_path: Path to the audio file (any format supported by pydub/ffmpeg).
         model_size: Whisper model size. Defaults to config value.
         language: Language code (e.g. "nl", "en"). None for auto-detection.
+        multilingual: Perform language detection on every 30-second chunk.
+            When True + language=None: per-chunk auto-detection (ideal for mixed-language audio).
+            When True + language="nl": forces "nl" but still detects per chunk.
+            When False (default): detect once in the first 30 seconds.
+            Note: faster-whisper does not expose detected language per segment,
+            so segment.language will contain the globally detected language.
         word_timestamps: Whether to include word-level timestamps. Defaults to config.
         compute_type: Quantization type. Defaults to config value.
         beam_size: Beam size for decoding. Defaults to config value.
@@ -81,6 +90,9 @@ def transcribe(
             seconds of silence (requires word_timestamps=True).
         repetition_penalty: Penalize repeated tokens (>1.0 reduces repetitions).
         no_repeat_ngram_size: Prevent repetition of n-grams of this size.
+        temperature: Sampling temperature. 0.0 = greedy/deterministic decoding.
+            Values >0 (e.g. 0.2) add randomness and can reduce repetitive hallucinations
+            on silent or low-speech audio. Defaults to config value (0.0).
         on_progress: Optional callback ``(progress: float, message: str) -> None``.
             Progress is 0.0–1.0 based on segment end time vs audio duration.
 
@@ -106,6 +118,7 @@ def transcribe(
     beam_size = beam_size if beam_size is not None else cfg.beam_size
     word_timestamps = word_timestamps if word_timestamps is not None else cfg.word_timestamps
     language = language if language is not None else cfg.language
+    multilingual = multilingual if multilingual is not None else cfg.multilingual
     vad_filter = vad_filter if vad_filter is not None else cfg.vad_filter
     condition_on_previous_text = (
         condition_on_previous_text
@@ -118,6 +131,7 @@ def transcribe(
     no_repeat_ngram_size = (
         no_repeat_ngram_size if no_repeat_ngram_size is not None else cfg.no_repeat_ngram_size
     )
+    temperature = temperature if temperature is not None else cfg.temperature
     if hallucination_silence_threshold is _UNSET:
         hallucination_silence_threshold = cfg.hallucination_silence_threshold
 
@@ -135,12 +149,16 @@ def transcribe(
         transcribe_kwargs: dict = {
             "beam_size": beam_size,
             "language": language,
+            "multilingual": multilingual,
             "word_timestamps": word_timestamps,
             "vad_filter": vad_filter,
             "condition_on_previous_text": condition_on_previous_text,
             "repetition_penalty": repetition_penalty,
             "no_repeat_ngram_size": no_repeat_ngram_size,
+            "temperature": temperature,
         }
+        if chunk_length is not None:
+            transcribe_kwargs["chunk_length"] = chunk_length
         if prompt:
             transcribe_kwargs["initial_prompt"] = prompt
             logger.info("Using custom prompt: %s", prompt[:80])
@@ -174,12 +192,24 @@ def transcribe(
                     start=seg.start,
                     end=seg.end,
                     words=words,
+                    language=info.language,
+                    avg_logprob=getattr(seg, "avg_logprob", None),
+                    no_speech_prob=getattr(seg, "no_speech_prob", None),
                 )
             )
 
             if on_progress and info.duration > 0:
                 progress = min(seg.end / info.duration, 1.0)
                 on_progress(progress, "Transcribing...")
+
+        # Post-process: per-segment language detection via lingua-py
+        if multilingual and segments:
+            try:
+                from transcripty.language_detect import detect_segment_languages
+
+                segments = detect_segment_languages(segments)
+            except Exception as e:
+                logger.warning("Per-segment language detection failed: %s", e)
 
         if on_progress:
             on_progress(1.0, "Transcription complete")

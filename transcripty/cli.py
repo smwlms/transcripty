@@ -117,7 +117,18 @@ def benchmark(audio_path: str, models: str, language: str | None, output: str | 
     help="Output format",
 )
 @click.option("--diarize/--no-diarize", default=False, help="Enable speaker diarization")
+@click.option(
+    "--multilingual/--no-multilingual",
+    default=None,
+    help="Per-chunk language detection (for mixed-language audio)",
+)
 @click.option("--vad/--no-vad", default=None, help="Enable VAD filter (reduces hallucinations)")
+@click.option(
+    "--temperature",
+    default=None,
+    type=float,
+    help="Sampling temperature (0.0=greedy, >0 adds randomness; e.g. 0.2 reduces repetitive hallucinations)",
+)
 @click.option("--output", "-o", default=None, help="Output file path (default: stdout)")
 def run(
     audio_path: str,
@@ -126,7 +137,9 @@ def run(
     compute_type: str | None,
     fmt: str,
     diarize: bool,
+    multilingual: bool | None,
     vad: bool | None,
+    temperature: float | None,
     output: str | None,
 ):
     """Transcribe an audio file."""
@@ -139,8 +152,12 @@ def run(
         kwargs["language"] = language
     if compute_type:
         kwargs["compute_type"] = compute_type
+    if multilingual is not None:
+        kwargs["multilingual"] = multilingual
     if vad is not None:
         kwargs["vad_filter"] = vad
+    if temperature is not None:
+        kwargs["temperature"] = temperature
 
     if diarize:
         from transcripty.pipeline import transcribe_with_speakers

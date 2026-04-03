@@ -35,6 +35,12 @@ except ImportError:
     SpeakerDB = None  # type: ignore[assignment]
 
 try:
+    from transcripty.language_detect import detect_language, detect_segment_languages
+except ImportError:
+    detect_language = None  # type: ignore[assignment]
+    detect_segment_languages = None  # type: ignore[assignment]
+
+try:
     __version__ = version("transcripty")
 except PackageNotFoundError:
     __version__ = "0.2.0"
@@ -57,6 +63,8 @@ __all__ = [
     "__version__",
     "clear_cache",
     "configure",
+    "detect_language",
+    "detect_segment_languages",
     "diarize",
     "get_config",
     "merge",

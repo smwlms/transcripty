@@ -46,19 +46,22 @@ class TranscriptyConfig(BaseSettings):
 
     _yaml_file: ClassVar[str] = str(_DEFAULT_CONFIG_FILE)
 
-    # Transcription
-    model_size: str = "small"
+    # Transcription — defaults tuned for Belgian real estate (NL/FR)
+    # Override via TRANSCRIPTY_* env vars or ~/.transcripty/config.yaml
+    model_size: str = "large-v3-turbo"
     compute_type: str = "int8"
-    language: str | None = None
-    beam_size: int = 5
+    language: str | None = None  # None = auto-detect per chunk
+    multilingual: bool = True  # MUST be True for FR/NL mixed audio
+    beam_size: int = 3  # beam=1 can miss content at lower volume
     word_timestamps: bool = True
 
     # Accuracy & anti-hallucination
-    vad_filter: bool = False
-    condition_on_previous_text: bool = True
-    hallucination_silence_threshold: float | None = None
+    temperature: float | list[float] = 0.0
+    vad_filter: bool = True
+    condition_on_previous_text: bool = False  # reduces hallucination cascades
+    hallucination_silence_threshold: float | None = 2.0
     repetition_penalty: float = 1.0
-    no_repeat_ngram_size: int = 0
+    no_repeat_ngram_size: int = 3  # 0% hallucinations
     cpu_threads: int = 0  # 0 = auto (CTranslate2 default)
 
     # Diarization

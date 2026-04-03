@@ -1,4 +1,7 @@
-"""Benchmark transcripty against existing Plaud transcriptions."""
+"""Benchmark transcripty against existing Plaud transcriptions.
+
+Uses the Echo database for reference transcriptions.
+"""
 
 import json
 import logging
@@ -13,13 +16,13 @@ logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 from transcripty import transcribe  # noqa: E402
 
 # Paths — configure via environment or command line
-PLAUDE_ROOT = Path(os.environ.get("PLAUDE_ROOT", Path.home() / "Documents/Projecten/Plaude"))
-DB_PATH = PLAUDE_ROOT / "plaude.db"
+ECHO_ROOT = Path(os.environ.get("ECHO_ROOT", Path.home() / "Documents/Projecten/Plaude"))
+DB_PATH = ECHO_ROOT / "echo.db"
 RECORDING_ID = int(os.environ.get("RECORDING_ID", "47"))
 
 
 def get_reference(recording_id: int) -> dict:
-    """Get existing transcription from Plaude database."""
+    """Get existing transcription from Echo database."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     row = conn.execute(
@@ -38,7 +41,7 @@ def fmt_ts(seconds: float) -> str:
 
 def run_benchmark(model_size: str) -> dict:
     ref = get_reference(RECORDING_ID)
-    audio_path = PLAUDE_ROOT / ref["storage_path"]
+    audio_path = ECHO_ROOT / ref["storage_path"]
     duration_s = ref["duration_ms"] / 1000
 
     print(f"\n{'=' * 70}")
