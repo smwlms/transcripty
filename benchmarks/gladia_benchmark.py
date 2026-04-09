@@ -278,18 +278,26 @@ def normalize_text(text: str, language: str, use_gladia: bool) -> str:
 # Dataset loaders
 # ---------------------------------------------------------------------------
 def _load_audio_dataset(config: DatasetConfig, max_samples: int | None) -> list[Sample]:
-    """Load dataset with embedded audio column from HuggingFace."""
-    import soundfile as sf
+    """Load dataset with embedded audio column from HuggingFace.
+
+    Uses Parquet-level access to extract raw audio bytes, avoiding the
+    need for torchcodec/torch at decode time.
+    """
     from datasets import load_dataset
+    from datasets.features import Audio
 
     effective_max = max_samples or config.default_max_samples
 
     print(f"  Downloading {config.display_name} from HuggingFace...")
-    kwargs = {}
+    kwargs: dict = {}
     if config.hf_config:
         kwargs["name"] = config.hf_config
 
-    ds = load_dataset(config.hf_id, split=config.split, trust_remote_code=True, **kwargs)
+    ds = load_dataset(config.hf_id, split=config.split, **kwargs)
+
+    # Disable audio decoding so we get raw file bytes/paths instead
+    if config.audio_column in ds.features and isinstance(ds.features[config.audio_column], Audio):
+        ds = ds.cast_column(config.audio_column, Audio(decode=False))
 
     if effective_max and len(ds) > effective_max:
         print(f"  Sampling {effective_max} of {len(ds)} rows...")
@@ -305,16 +313,7 @@ def _load_audio_dataset(config: DatasetConfig, max_samples: int | None) -> list[
             continue
 
         audio = item[config.audio_column]
-        audio_path: str | None = None
-
-        if isinstance(audio, dict):
-            # HF Audio feature: dict with path, array, sampling_rate
-            if audio.get("path") and Path(str(audio["path"])).exists():
-                audio_path = str(audio["path"])
-            elif "array" in audio and audio["array"] is not None:
-                tmp_path = os.path.join(tmp_dir, f"sample_{i}.wav")
-                sf.write(tmp_path, audio["array"], audio["sampling_rate"])
-                audio_path = tmp_path
+        audio_path = _resolve_audio(audio, tmp_dir, i)
 
         if audio_path:
             samples.append(
@@ -327,6 +326,41 @@ def _load_audio_dataset(config: DatasetConfig, max_samples: int | None) -> list[
             )
 
     return samples
+
+
+def _resolve_audio(audio, tmp_dir: str, index: int) -> str | None:
+    """Extract a usable file path from an HF audio item.
+
+    Handles both decoded dicts (path/array) and non-decoded dicts
+    (path + bytes).
+    """
+    import soundfile as sf
+
+    if isinstance(audio, str) and Path(audio).exists():
+        return audio
+
+    if not isinstance(audio, dict):
+        return None
+
+    # Non-decoded: dict with "path" and "bytes"
+    if audio.get("bytes"):
+        ext = Path(audio.get("path") or "audio.wav").suffix or ".wav"
+        tmp_path = os.path.join(tmp_dir, f"sample_{index}{ext}")
+        with open(tmp_path, "wb") as f:
+            f.write(audio["bytes"])
+        return tmp_path
+
+    # Path to cached file on disk
+    if audio.get("path") and Path(str(audio["path"])).exists():
+        return str(audio["path"])
+
+    # Decoded: dict with "array" and "sampling_rate"
+    if "array" in audio and audio["array"] is not None:
+        tmp_path = os.path.join(tmp_dir, f"sample_{index}.wav")
+        sf.write(tmp_path, audio["array"], audio["sampling_rate"])
+        return tmp_path
+
+    return None
 
 
 def _load_repo_dataset(config: DatasetConfig, max_samples: int | None) -> list[Sample]:
@@ -396,14 +430,13 @@ def compute_wer(reference: str, hypothesis: str) -> dict:
             "hyp_words": len(hypothesis.split()),
         }
 
-    measures = jiwer.compute_measures(reference, hypothesis)
-    wer_val = measures["wer"]
+    result = jiwer.process_words(reference, hypothesis)
     return {
-        "wer": round(wer_val, 4),
-        "wer_pct": round(wer_val * 100, 2),
-        "substitutions": measures["substitutions"],
-        "insertions": measures["insertions"],
-        "deletions": measures["deletions"],
+        "wer": round(result.wer, 4),
+        "wer_pct": round(result.wer * 100, 2),
+        "substitutions": result.substitutions,
+        "insertions": result.insertions,
+        "deletions": result.deletions,
         "ref_words": len(reference.split()),
         "hyp_words": len(hypothesis.split()),
     }
