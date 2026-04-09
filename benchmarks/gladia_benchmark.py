@@ -514,7 +514,7 @@ def run_benchmark(
                     sample.audio_path,
                     model_size=model_size,
                     language=lang,
-                    word_timestamps=False,
+                    word_timestamps=True,  # needed for hallucination detection
                     vad_filter=True,
                     condition_on_previous_text=False,
                     temperature=0.0,
