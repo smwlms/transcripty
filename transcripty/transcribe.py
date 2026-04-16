@@ -19,8 +19,13 @@ logger = logging.getLogger(__name__)
 _UNSET = object()  # sentinel to distinguish "not provided" from None
 
 ModelSize = Literal[
-    "tiny", "base", "small", "medium",
-    "large-v3", "large-v3-turbo", "distil-large-v3",
+    "tiny",
+    "base",
+    "small",
+    "medium",
+    "large-v3",
+    "large-v3-turbo",
+    "distil-large-v3",
 ]
 ComputeType = Literal["int8", "float16", "float32", "auto"]
 
@@ -66,8 +71,14 @@ def transcribe(
     temperature: float | list[float] | tuple[float, ...] | None = None,
     chunk_length: int | None = None,
     on_progress: Callable[[float, str], None] | None = None,
+    auto_chunk: bool | None = None,
+    auto_chunk_threshold: float | None = None,
 ) -> TranscriptionResult:
     """Transcribe an audio file using faster-whisper.
+
+    For audio longer than *auto_chunk_threshold* (default 30 min), the file
+    is automatically split into chunks with per-chunk language detection and
+    context carryover.  Set ``auto_chunk=False`` to disable.
 
     Args:
         audio_path: Path to the audio file (any format supported by pydub/ffmpeg).
@@ -113,6 +124,47 @@ def transcribe(
 
     # Resolve defaults from config
     cfg = get_config()
+
+    # --- Auto-chunk for long audio ---
+    _auto_chunk = auto_chunk if auto_chunk is not None else cfg.auto_chunk
+    _threshold = auto_chunk_threshold or cfg.auto_chunk_threshold
+    if _auto_chunk:
+        try:
+            from transcripty.audio import audio_duration
+
+            dur = audio_duration(audio_path)
+            if dur > _threshold:
+                from transcripty.long_audio import transcribe_long
+
+                logger.info(
+                    "Audio duration %.0fs exceeds threshold %.0fs, using chunked processing",
+                    dur,
+                    _threshold,
+                )
+                # Forward all parameters
+                return transcribe_long(
+                    audio_path,
+                    chunk_minutes=cfg.chunk_minutes,
+                    overlap_seconds=cfg.chunk_overlap_seconds,
+                    context_words=cfg.context_words,
+                    on_progress=on_progress,
+                    model_size=model_size or cfg.model_size,
+                    language=language,
+                    multilingual=multilingual,
+                    word_timestamps=word_timestamps,
+                    compute_type=compute_type or cfg.compute_type,
+                    beam_size=beam_size,
+                    prompt=prompt,
+                    vad_filter=vad_filter,
+                    condition_on_previous_text=condition_on_previous_text,
+                    hallucination_silence_threshold=hallucination_silence_threshold,
+                    repetition_penalty=repetition_penalty,
+                    no_repeat_ngram_size=no_repeat_ngram_size,
+                    temperature=temperature,
+                    chunk_length=chunk_length,
+                )
+        except Exception as e:
+            logger.warning("Auto-chunk check failed, continuing without chunking: %s", e)
     model_size = model_size or cfg.model_size  # type: ignore[assignment]
     compute_type = compute_type or cfg.compute_type  # type: ignore[assignment]
     beam_size = beam_size if beam_size is not None else cfg.beam_size
@@ -163,9 +215,7 @@ def transcribe(
             transcribe_kwargs["initial_prompt"] = prompt
             logger.info("Using custom prompt: %s", prompt[:80])
         if hallucination_silence_threshold is not None:
-            transcribe_kwargs["hallucination_silence_threshold"] = (
-                hallucination_silence_threshold
-            )
+            transcribe_kwargs["hallucination_silence_threshold"] = hallucination_silence_threshold
 
         segments_gen, info = model.transcribe(str(wav_path), **transcribe_kwargs)
 

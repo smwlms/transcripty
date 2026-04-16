@@ -64,6 +64,13 @@ class TranscriptyConfig(BaseSettings):
     no_repeat_ngram_size: int = 3  # 0% hallucinations
     cpu_threads: int = 0  # 0 = auto (CTranslate2 default)
 
+    # Long audio chunking
+    auto_chunk: bool = True  # auto-chunk when audio > auto_chunk_threshold
+    auto_chunk_threshold: float = 1800.0  # 30 minutes in seconds
+    chunk_minutes: float = 10.0  # target chunk length
+    chunk_overlap_seconds: float = 5.0  # overlap between chunks
+    context_words: int = 50  # words carried over as prompt to next chunk
+
     # Diarization
     hf_token: str | None = None
     num_speakers: int | None = None

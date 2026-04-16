@@ -2,8 +2,15 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
+from transcripty.audio import audio_duration
 from transcripty.config import configure, get_config
 from transcripty.formatters import to_srt, to_text, to_vtt, to_word_highlights
+from transcripty.long_audio import (
+    detect_audio_language,
+    filter_hallucinations,
+    merge_consecutive_segments,
+    transcribe_long,
+)
 from transcripty.merge import merge
 from transcripty.models import (
     UNKNOWN_SPEAKER,
@@ -61,18 +68,23 @@ def clear_cache() -> None:
 
 __all__ = [
     "__version__",
+    "audio_duration",
     "clear_cache",
     "configure",
+    "detect_audio_language",
     "detect_language",
     "detect_segment_languages",
     "diarize",
+    "filter_hallucinations",
     "get_config",
     "merge",
+    "merge_consecutive_segments",
     "to_srt",
     "to_text",
     "to_vtt",
     "to_word_highlights",
     "transcribe",
+    "transcribe_long",
     "transcribe_with_speakers",
     "Vocabulary",
     "SpeakerDB",
